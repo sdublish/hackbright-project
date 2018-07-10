@@ -20,6 +20,11 @@ def show_homepage():
     return render_template("homepage.html")
 
 
+@app.route("/search")
+def show_search():
+    return render_template("search.html")
+
+
 @app.route("/login", methods=["GET"])
 def show_login():
     return render_template("login.html")

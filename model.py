@@ -14,10 +14,9 @@ class User(db.Model):
     lname = db.Column(db.String(40), nullable=False)
     email = db.Column(db.String(64), nullable=False)
     password = db.Column(db.String(20), nullable=False)
-    # any other fields go here
-    # for example I could ask for favorite book or something like that. Just to be cute
-    # and age and zipcode, for ... possible other feature? idk man
-    # note: should probably allow users to update this info somewhere... and somehow
+    age = db.Column(db.Integer, nullable=True)
+    zipcode = db.Column(db.String(6), nullable=True)
+    fav_book = db.Column(db.String(60), nullable=True)
 
     fav_authors = db.relationship("Fav_Author")
     fav_series = db.relationship("Fav_Series")
@@ -32,8 +31,7 @@ class Author(db.Model):
 
     author_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     author_name = db.Column(db.String(100), nullable=False)
-    google_book_id = db.Column(db.String(100), nullable=True)
-    goodreads_id = db.Column(db.Integer, nullable=True)
+    goodreads_id = db.Column(db.String(15), nullable=True)
 
     favorited_by = db.relationship("Fav_Author")  # not sure if useful
 
@@ -63,6 +61,7 @@ class Series(db.Model):
 
     series_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     series_name = db.Column(db.String(200), nullable=False)
+    goodreads_id = db.Column(db.String(50), nullable=True)
 
     favorited_by = db.relationship("Fav_Series")
 
@@ -71,12 +70,12 @@ class Series(db.Model):
 
 
 class Fav_Series(db.Model):
-    """ Association table to keep track of favorite series"""
+    """ Association table to keep track of favorited series"""
     __tablename__ = "fav_series"
 
     fav_series_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.user_id"), nullable=False)
     series_id = db.Column(db.Integer, db.ForeignKey("series.series_id"), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.users_id"), nullable=False)
 
     series = db.relationship("Series")
     user = db.relationship("User")

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% block title %} Search {% endblock %}
+{% block content %}
+<h1> Search </h1>
+<!-- Thing which would be cool to do: have people tell me if they're searching by author or series 
+    and modify the form to show the proper fields depending on user input -->
+<form action="undecided" method="POST">
+    Seach by: <!-- Use the buttons or something, things which only allow one option -->
+    <!-- If it's series, go through goodreads
+    If it's an author, go through Google Books, because I think that's better?
+    Then submit the form and... huh. Do I need it on a different page altogether?
+    Well, I need to check if preventDefault prevents the update from going back the the server
+    Since I would like to update the search history in some way
+    And I rather NOT code that all in the page because that feels weird
+    It would be cool to make it show up dynamically though
+-->
+</form>
+{% endblock %}
