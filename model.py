@@ -33,7 +33,7 @@ class Author(db.Model):
     author_name = db.Column(db.String(100), nullable=False)
     goodreads_id = db.Column(db.String(15), nullable=True)
 
-    favorited_by = db.relationship("Fav_Author")  # not sure if useful
+    favorited_by = db.relationship("Fav_Author") 
 
     def __repr__(self):
         return "<Author {}, Name: {}>".format(self.author_id, self.author_name)
@@ -86,8 +86,6 @@ class Fav_Series(db.Model):
 
 ######### HELPER FUNCTION ###################################################################
 
-# should probably write a function to allow me to play with data directly in python
-# that or copy it
 
 def connect_to_db(app):
     """ Connects to database"""
@@ -95,3 +93,12 @@ def connect_to_db(app):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     db.app = app
     db. init_app(app)
+
+
+if __name__ == "__main__":
+    # As a convenience, if we run this module interactively, it will leave
+    # you in a state of being able to work with the database directly.
+
+    from server import app
+    connect_to_db(app)
+    print("Connected to DB.")

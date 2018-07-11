@@ -5,6 +5,14 @@
     <title> {% block title %} {% endblock %} </title>
 </head>
 <body>
+    {% for message in get_flashed_messages() %}
+    <p> {{ message }} </p>
+    {% endfor %}
+
+    {% if "user_id" in session %}
+    <p> <a href="/logout"> Logout </a> </p>
+    {% endif %}
+
     {% block content %} {% endblock %}
 </body>
 </html>

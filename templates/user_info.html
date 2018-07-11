@@ -1,9 +1,54 @@
 {% extends "base.html" %}
-{% block title %} {{ user.fname }} Info {% endblock %}
+{% block title %} {{ user.fname }}'s Info {% endblock %}
 {% block content %}
-<hl> {{ user.fname }} {{ user.lname }} </h1>
-<!-- Show some sort of info here -->
-{% if session.get("user_id") == {{ user.user_id }} %}
-<!-- Show something which is user-specific here -->
+<h1> {{ user.fname }} {{ user.lname }} </h1>
+<!-- Privacy settings for user??? Not an easy way to set that up with my current system. Could add more fields to store that info.
+To make it truly private, we would want to pass in those fields separately instead of passing in an object with access to all those fields. ... Interesting idea. Will think about. -->
+
+<p> Favorite book: {{ user.fav_book }} </p>
+
+{% if session.user_id == user.user_id %}
+<p> Age: {{ user.age }} </p>
+<p> Zipcode: {{ user.zipcode }} </p>
+<p> Favorite authors: <ul>{% for fav_author in user.fav_authors %} 
+    <li> {{ fav_author.author.author_name }} </li>
+{% endfor %}
+</ul></p>
+<p> Favorite series: <ul>{% for fs in user.fav_series %} 
+    <li> {{ fs.series.series_name }} </li>
+{% endfor %}
+</ul></p>
+<h3> Update Profile </h3>
+<!--Another thing which I neeed to think about... how to update profile (and database!) without changing the page. I think I can AJAX it, but let's first try to get that set up without AJAX -->
+
+<form action="/update-profile" method="POST">
+<input type="hidden" name="user_id" value="{{ user.user_id }}">
+Update age: <input type="number" min="1" name="age"><br>
+Update zipcode: <input type="text" name="zipcode"><br>
+Update favorite book: <input type="text" name="fav-book"><br>
+<input type="Submit" value="Update">
+</form>
+
+<h3> Update Favorite Authors </h3>
+<form action="/update-authors" method="POST">
+<input type="hidden" name="user_id" value="{{ user.user_id }}">
+Check any authors you would like to remove: <br>{% for fav_author in user.fav_authors %}
+<input type="checkbox" name="author-remove" value="{{ fav_author.author_id}}"> {{ fav_author.author.author_name }}<br> {% endfor %}<br>
+List the authors you would like to add on a new line:<br>
+<textarea name="new-author"></textarea><br>
+<input type="Submit" value="Update">
+</form>
+
+
+<h3> Update Favorite Serires </h3>
+<form action="/update-series" method="POST">
+<input type="hidden" name="user_id" value="{{ user.user_id }}">
+Check any series you would like to remove: <br>{% for fs in user.fav_series %}
+<input type="checkbox" name="series-remove" value="{{ fs.series_id}}"> {{ fs.series.series_name }}<br> {% endfor %}<br>
+List the series you would like to add on a new line: <br>
+<textarea name="new-series"></textarea><br>
+<input type="Submit" value="Update">
+</form>
+
 {% endif %}
 {% endblock %}

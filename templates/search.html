@@ -4,8 +4,7 @@
 <h1> Search </h1>
 <!-- Thing which would be cool to do: have people tell me if they're searching by author or series 
     and modify the form to show the proper fields depending on user input -->
-<form action="undecided" method="POST">
-    Seach by: <!-- Use the buttons or something, things which only allow one option -->
+<!-- Use the buttons or something, things which only allow one option -->
     <!-- If it's series, go through goodreads
     If it's an author, go through Google Books, because I think that's better?
     Then submit the form and... huh. Do I need it on a different page altogether?
@@ -14,5 +13,11 @@
     And I rather NOT code that all in the page because that feels weird
     It would be cool to make it show up dynamically though
 -->
+<form action="/search" method="POST">
+    Author: <input type="text" name="author"><br>
+    Series: <input type="text" name="series"><br>
+    <!-- Something for the timeframe here. Either actual date-time or some options of how far out you want to go -->    
+
+    <input type="Submit" value="Search">
 </form>
 {% endblock %}
