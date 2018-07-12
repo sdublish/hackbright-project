@@ -15,9 +15,17 @@
 -->
 <form action="/search" method="POST">
     Author: <input type="text" name="author"><br>
-    Series: <input type="text" name="series"><br>
+    Series: <select name="series"> 
+    <option selected value> -- select an option -- </option>{% for s in series %}
+    <option value="{{s.series_name}}"> {{ s.series_name }} </option>
+    {% endfor %}
+</select>
     <!-- Something for the timeframe here. Either actual date-time or some options of how far out you want to go -->    
 
     <input type="Submit" value="Search">
 </form>
+
+{% if "search_history" in session %}
+{{ session.search_history }}
+{% endif %}
 {% endblock %}

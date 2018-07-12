@@ -15,6 +15,24 @@ app.jinja_env.undefined = StrictUndefined
 
 # note need to run secrets file in order to set secret key
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
+goodreads_key = os.environ["GOODREADS_API_KEY"]
+google_books_key = os.environ["GOOGLE_BOOKS_API_KEY"]
+
+
+def get_author_goodreads_id(author_name):
+    """ Given author name, returns Goodreads ID associated with name, if it exists.
+    Otherwise returns None."""
+    payload = {"key": goodreads_key}
+    url = "https://www.goodreads.com/api/author_url/{}".format(author_name)
+    goodreads_id = None
+
+    response = requests.get(url, params=payload)
+
+    if response.status_code == 200:
+        tree = ET.fromstring(response.content)
+        goodreads_id = tree[1].attrib["id"]
+
+    return goodreads_id
 
 
 @app.route("/")
@@ -24,13 +42,15 @@ def show_homepage():
 
 @app.route("/search")
 def show_search():
-    return render_template("search.html")
+    series = Series.query.all()
+    return render_template("search.html", series=series)
 
 
 @app.route("/search", methods=["POST"])
 def search():
     author = request.form.get("author")
     series_name = request.form.get("series")
+    print(series_name)
 
     if author and series_name:
         flash("Please enter only one!")
@@ -40,36 +60,128 @@ def search():
                    "langRestrict": "en",
                    "orderBy": "newest",
                    "printType": "books",
-                   "key": os.environ["GOOGLE_BOOKS_API_KEY"]
+                   "key": google_books_key
                    }
-
+        # if I want to limit fields I should mess around with requests to see what I get
+        # also I should probably limit how many results I get back. I don't need to comb through
+        # 400 + results... right?
         response = requests.get("https://www.googleapis.com/books/v1/volumes", params=payload)
-        # if response = 200, we can turn into JSON, I believe
-        results = response.json()
-        next_book = results["items"][0]["volumeInfo"]
-        print(next_book)
-        # search google books for author and get back info
-        flash("Something happened!")
-        return redirect("/search")
+
+        if response.status_code == 200:
+            results = response.json()  # returns a very complicated dictionary
+            next_book = results["items"][0]["volumeInfo"]
+
+            print(next_book["title"], next_book["publishedDate"])
+            if "search_history" in session:
+                session["search_history"].append((author, next_book["title"], next_book["publishedDate"]))
+            flash("Something happened!")
+            return redirect("/search")
+
+        else:
+            flash("Something went wrong :(")
+            return redirect("/search")
     elif series_name:
-        series = Series.query.filter_by(series_name=series_name)
-        if series:
-            payload = {"key": os.environ["GOODREADS_API_KEY"],
+        series = Series.query.filter_by(series_name=series_name).first()
+        if series.goodreads_id:
+            payload = {"key": goodreads_key,
                        "id": series.goodreads_id}
-            response = request.get(" https://www.goodreads.com/series/show/", params=payload)
-            # create a tree based off xml
-            # get a list of nodes which contain the info about the books
-            # go backwards through list: last book should be most recent
-            # if book doesn't have date, go to Google books to get date
-            # otherwise use date in goodreads
-        # check to see if series is in database. If it is, request info about that series and handle.
-        # If it isn't... we're going to do something very roundabout...
-        payload = {}
-        # search goodreads for series and get back info
-        pass
+            response = requests.get(" https://www.goodreads.com/series/show/", params=payload)
+            xml_root = ET.fromstring(response.content)
+            #so, first, I need to know how many books are in this series
+            #note I can chain find/findalls together to make my thought process clearer
+            series_length = xml_root.find("series").find("primary_work_count").text
+            series_works = list(xml_root.find("series").find("series_works"))  # a list of all the books in said series
+            # what if I could sort the roots by publication order?
+            # woud make traversing a lot easier
+            # how do I want to deal when no user_position is given?
+            # probably do some handling and make it so that None is now a string which makes sense
+            # I can edit the tree, after all.
+            # lst2 = sorted(series_works, key=lambda work: work.find("user_position").text, reverse=True)
+            # print(lst2)
+            title = None
+            published = None
+            for work in series_works:
+                if work[1].text == series_length:
+                    title = work.find("work").find("original_title").text
+                    published = work.find("work").find("original_publication_year").text
+
+            print(title, published)
+            if "search_history" in session:
+                session["search_history"].append((series_name, title, published))
+            # Need to add to search history as well!
+            flash("Something happened!")
+            return redirect("/search")
+
     else:
         flash("Please enter an author or series")
         return redirect("/search")
+
+
+@app.route("/adv-search")
+def show_adv_search():
+    return render_template("adv-search.html")
+
+
+@app.route("/by-author", methods=["POST"])
+def search_by_author():
+    author_name = request.form.get("author")
+    # need to make sure we actually got an input from author? 
+    author = Author.query.filter_by(author_name=author_name).first()
+
+    if author:  # author is in database
+        if author.goodreads_id:
+            payload = {"key": goodreads_key, "id": author.goodreads_id}
+            response = requests.get("https://www.goodreads.com/series/list", params=payload)
+
+            if response.status_code == 200:
+                tree = ET.fromstring(response.content)
+
+            else:  # could not make a response, or something happened
+                pass
+
+        else:
+            actual_id = get_author_goodreads_id(author_name)
+            if actual_id:
+                author.goodreads_id = actual_id
+
+    else:  # author is not in database
+        actual_id = get_author_goodreads_id(author_name)
+        if actual_id:
+            db.session.add(Author(author_name=author_name, goodreads_id=actual_id))
+            # then search, I guess? IDK how I want to display this yet
+        else:
+            pass
+
+    # check to see if author in database
+    # if so, use goodreads id to get list of series to show you
+    # if not, get goodreads id to search
+    # after getting series, show them to user, who can then pick which one to search
+    # then we add series to database (to make it easier in the future)
+    # and show them the results (possibly factor out code in normal search to here)
+    # if no id exists, tell user so
+    pass
+
+
+@app.route("/by-book", methods=["POST"])
+def search_by_book():
+    title = request.form.get("title")
+    # need to check that the author actually exists?
+
+    payload = {"q": title, "key": goodreads_key}
+
+    response = requests.get("https://www.goodreads.com/search/index.xml", params=payload)
+
+    if response.status_code == 200:  # got a response
+        tree = ET.fromstring(response.content)
+    else:  # tell the user that there was an error
+        pass
+    # so, to search by book:
+    # go to goodreads and get a list of books by title
+    # goodreads returns the top twenty
+    # show the series associated with each book
+    # let the user pick which series they want to search
+    # then let them search
+    # if nothing comes back, or if the user can't find the series in the first twenty books, tell the user so 
 
 
 @app.route("/login", methods=["GET"])
@@ -85,6 +197,7 @@ def login():
 
     if user:  # if the email and password match what's in the database
         session["user_id"] = user.user_id
+        session["search_history"] = []
         flash("Successfully logged in!")
         return redirect("/user/{}".format(user.user_id))
 
@@ -97,6 +210,7 @@ def login():
 def logout():
     if "user_id" in session:
         del session["user_id"]
+        del session["search_history"]
         flash("Logged out!")
 
     else:  # don't think I need this check if I have one built into tmeplate creation?
@@ -195,8 +309,13 @@ def update_authors():
                 else:
                     db.session.add(Fav_Author(author_id=author.author_id, user_id=user_id))
             else:
-                # need to add author to database
-                pass
+                goodreads_id = get_author_goodreads_id(author_name)
+
+                db.session.add(Author(author_name=author_name, goodreads_id=goodreads_id))
+                db.session.commit()
+
+                author_id = Author.query.filter_by(author_name=author_name).first().author_id
+                db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
 
     db.session.commit()
     flash("Authors successfully updated")
@@ -215,7 +334,7 @@ def update_series():
             if series:
                 db.session.delete(series)
 
-    if new_series:
+    if new_series:  # if I can't figure out a good way to handle this, I'm going to have to remove this functionality
         for series_name in new_series:
             series = Series.query.filter_by(series_name=series_name).first()
             if series:
@@ -225,13 +344,48 @@ def update_series():
 
                 else:
                     db.session.add(Fav_Series(series_id=series.series_id, user_id=user_id))
-            else:
-                # need to add series to database
-                pass
 
     db.session.commit()
     flash("Series successfully updated")
     return redirect("/user/{}".format(user_id))
+
+
+@app.route("/author/<author_id>")
+def show_author_info(author_id):
+    author = Author.query.get(author_id)
+
+    if author.goodreads_id is None:
+        author.goodreads_id = get_author_goodreads_id(author.author_name)
+        # query goodreads to see if there is an id
+        # if so, set it
+        # otherwise, don't do anything
+
+    if author.goodreads_id:
+        payload = {"id": author.goodreads_id, "key": goodreads_key}
+        response = requests.get("https://www.goodreads.com/author/show/", params=payload)
+        # if response was successfully made
+        tree = ET.fromstring(response.content)
+        author_info = tree.find("author")
+        # info to display: total works, gender, list of series, list of works
+        pass
+
+    else:
+        # display something else
+        pass
+
+    return render_template("author_info.html", author=author)
+
+
+@app.route("/series/<series_id>")
+def show_series_info(series_id):
+    series = Series.query.get(series_id)
+    # since all series have goodread ids now
+    # can send a request to goodreads to get info!
+    if series.goodreads_id:
+        pass
+
+    return render_template("series_info.html", series=series)
+
 
 if __name__ == "__main__":
     app.debug = True

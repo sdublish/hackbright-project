@@ -59,7 +59,7 @@ def load_series():
     Series.query.delete()
 
     db.session.add(Series(series_name="Mistborn", goodreads_id="40910"))
-    db.session.add(Series(series_name="Harry Potter"))
+    db.session.add(Series(series_name="Harry Potter", goodreads_id="45175"))
     db.session.add(Series(series_name="The Giver", goodreads_id="43606"))
 
     db.session.commit()
