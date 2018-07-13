@@ -10,7 +10,6 @@ def load_users():
     """ Loads test users into database"""
 
     # delete all rows so we don't add duplicate info
-    User.query.delete()
 
     db.session.add(User(fname="Bob", lname="Bob", email="bob@bob.com", password="bob"))
     db.session.add(User(fname="Jane", lname="Debug", email="jdebug@gmail.com", password="bugs"))
@@ -25,7 +24,6 @@ def load_authors():
     """Loads sample authors into database"""
 
     # delete all rows so we don't add duplicate info
-    Author.query.delete()
 
     db.session.add(Author(author_name="Brandon Sanderson", goodreads_id="38550"))
     db.session.add(Author(author_name="William Shakespeare", goodreads_id="947"))
@@ -41,7 +39,6 @@ def load_fav_authors():
     print("Loading favorite authors")
 
     # delete all rows so we don't add duplicate info
-    Fav_Author.query.delete()
 
     db.session.add(Fav_Author(user_id=1, author_id=4))
     db.session.add(Fav_Author(user_id=2, author_id=3))
@@ -56,7 +53,6 @@ def load_series():
     print("Loading series")
 
     # delete all rows so we don't add duplicate info
-    Series.query.delete()
 
     db.session.add(Series(series_name="Mistborn", goodreads_id="40910"))
     db.session.add(Series(series_name="Harry Potter", goodreads_id="45175"))
@@ -70,7 +66,6 @@ def load_fav_series():
     print("Loading favorite series")
 
     # delete all rows so we don't add duplicate info
-    Fav_Series.query.delete()
 
     db.session.add(Fav_Series(user_id=2, series_id=1))
     db.session.add(Fav_Series(user_id=3, series_id=3))
@@ -83,6 +78,13 @@ def load_fav_series():
 if __name__ == "__main__":
     connect_to_db(app)
     db.create_all()
+
+    # deleting info here in a specific order to avoid foreign key errors
+    Fav_Series.query.delete()
+    Fav_Author.query.delete()
+    User.query.delete()
+    Author.query.delete()
+    Series.query.delete()
 
     load_users()
     load_authors()

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %} Search By Author Results {% endblock %}
+{% block content %}
+<h1> {{ title }} </h1>
+{% if series|length > 0 %}
+<form action="/author-series-result" method="POST">
+{% for id, name in series.items() %}
+<input type="radio" name="series" value="{{ id }}"> {{ name }} <br>
+{% endfor %}
+<input type="submit" name="Look up series">
+</form>
+<p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
+{% else %}
+<p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
+{% endif %}
+ {% endblock %}

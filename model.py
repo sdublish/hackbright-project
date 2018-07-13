@@ -33,7 +33,7 @@ class Author(db.Model):
     author_name = db.Column(db.String(100), nullable=False)
     goodreads_id = db.Column(db.String(15), nullable=True)
 
-    favorited_by = db.relationship("Fav_Author") 
+    favorited_by = db.relationship("Fav_Author")
 
     def __repr__(self):
         return "<Author {}, Name: {}>".format(self.author_id, self.author_name)
