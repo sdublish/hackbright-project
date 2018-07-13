@@ -3,9 +3,9 @@
 {% block content %}
 <h1> {{ title }} </h1>
 {% if series|length > 0 %}
-<form action="/author-series-result" method="POST">
+<form action="/series-result" id="series-search" method="POST">
 {% for id, name in series.items() %}
-<input type="radio" name="series" value="{{ id }}"> {{ name }} <br>
+<input type="radio" value= "{{ id }}" name="series"> <span id="{{ id }}">{{ name }} </span><br>
 {% endfor %}
 <input type="submit" name="Look up series">
 </form>
@@ -13,4 +13,22 @@
 {% else %}
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
 {% endif %}
+
+ <script>
+    function showResults(result){
+        console.log(result);
+    }
+function searchSeries(evt){
+    evt.preventDefault();
+    let seriesID = $('input[name=series]:checked').val();
+    let IDAsString = `#${seriesID}`;
+    let seriesName = $(IDAsString).text();
+    let formInputs = {'id': seriesID, 'name': seriesName};
+    $.post("/series-result.json", formInputs, showResults);
+}
+
+
+
+$("#series-search").on("submit", searchSeries);
+ </script>
  {% endblock %}

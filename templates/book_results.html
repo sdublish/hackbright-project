@@ -4,7 +4,7 @@
 <h1> Search Results for {{ query }} </h1>
 <form action="/book-series" method="POST">
 {% for book in books %}
-<input type="radio" name="book" value="{{ book[2] }}"> {{ book[0] }} by {{ book[1] }} <br>
+<input type="radio" name="book" value="{{ book[2] }} || {{ book [0] }}"> {{ book[0] }} by {{ book[1] }} <br>
 {% endfor %}
 <input type="submit" name="Find series for this book">
 </form>

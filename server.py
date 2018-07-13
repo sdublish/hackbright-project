@@ -3,7 +3,7 @@ import os
 import requests
 import xml.etree.ElementTree as ET
 
-from flask import Flask, session, request, render_template, redirect, flash
+from flask import Flask, session, request, render_template, redirect, flash, jsonify
 from model import connect_to_db, User, Author, Fav_Author, Series, Fav_Series, db
 
 from flask_debugtoolbar import DebugToolbarExtension
@@ -22,6 +22,12 @@ google_books_key = os.environ["GOOGLE_BOOKS_API_KEY"]
 def get_author_goodreads_id(author_name):
     """ Given author name, returns Goodreads ID associated with name, if it exists.
     Otherwise returns None."""
+    # can change this so it sends author name
+    # ... just for that one use case? IDK I don't know if that's a good idea...
+    # python is special casess aren't that special
+    # and I can literally avoid making an API call if I just give that info again
+    # also this tree is SUPER SMALL
+    # so it might be a good idea to just... send the tree info in a different way
     payload = {"key": goodreads_key}
     url = "https://www.goodreads.com/api/author_url/{}".format(author_name)
     goodreads_id = None
@@ -32,12 +38,14 @@ def get_author_goodreads_id(author_name):
         tree = ET.fromstring(response.content)
         if tree.find("author"):
             goodreads_id = tree.find("author").attrib["id"]
+            # if this is a dictionary, can't I solve this with get?
+            # well, not if the dictionary doesn't exist in the first place?
+            # Need to check on this
 
     return goodreads_id
 
 
 def sort_series(series_list):
-    series = {}
     by_user_position = {}
 
     for series in series_list:
@@ -51,16 +59,14 @@ def sort_series(series_list):
             by_user_position[user_position] = {series_id: series_name}
 
     if len(by_user_position) == 0:
-        return series
+        return {}
 
     elif len(by_user_position) == 1:
-        series = by_user_position.popitem()[1]
-        return series
+        return by_user_position.popitem()[1]
 
     else:
         smallest_user_position = min(key for key in by_user_position if key is not None and key >= "1")
-        series = by_user_position[smallest_user_position]
-        return series
+        return by_user_position[smallest_user_position]
 
 
 def get_series_list_by_author(author_id):
@@ -83,11 +89,11 @@ def get_last_book_of_series(series_name, series_id):
     payload = {"key": goodreads_key, "id": series_id}
     response = requests.get(" https://www.goodreads.com/series/show/", params=payload)
     # also need to do some checks to make sure everything is working well with the API
-    xml_root = ET.fromstring(response.content)
+    tree = ET.fromstring(response.content)
     #so, first, I need to know how many books are in this series
     #note I can chain find/findalls together to make my thought process clearer
-    series_length = xml_root.find("series").find("primary_work_count").text
-    series_works = list(xml_root.find("series").find("series_works"))  # a list of all the books in said series
+    series_length = tree.find("series").find("primary_work_count").text
+    series_works = list(tree.find("series").find("series_works"))  # a list of all the books in said series
     # what if I could sort the roots by publication order?
     # woud make traversing a lot easier
     # how do I want to deal when no user_position is given?
@@ -98,13 +104,15 @@ def get_last_book_of_series(series_name, series_id):
     title = None
     published = None
     for work in series_works:
-        if work[1].text == series_length:
+        if work.find("user_position").text == series_length:
             title = work.find("work").find("original_title").text
             published = work.find("work").find("original_publication_year").text
 
     print(title, published)
     if "search_history" in session:
         session["search_history"].append((series_name, title, published))
+
+    return {'title': title, 'published': published}
 
     # things I need to do: if no publication date is provided, get publication date from Google Books
     # I need to do a decent amount of data validation here
@@ -166,6 +174,10 @@ def search():
             flash("Something happened!")
             return redirect("/search")
 
+        else:
+            flash("Something went wrong")
+            return redirect("/search")
+
     else:
         flash("Please enter an author or series")
         return redirect("/search")
@@ -215,27 +227,39 @@ def search_by_author():
                 return redirect("/adv-search")
 
     else:  # author is not in database
-        # two scenarios: a typo occurred, or not there. Goodreads does some sort of spell check, somehow??
         actual_id = get_author_goodreads_id(author_name)
         print(actual_id)
-        # this is where I would need to handle the spell check thing.
         if actual_id:
-            db.session.add(Author(author_name=author_name, goodreads_id=actual_id))
+            possible_author = Author.query.filter_by(goodreads_id=actual_id).first()
+            if possible_author:  # if there was a typo that goodreads handled
+                series_info = get_series_list_by_author(possible_author.goodreads_id)
+                if series_info is not None:  # if we get results
+                    # also I probably should add search results to search history as well
+                    return render_template("series_results.html", series=series_info, title=title)
+
+                else:  # did not get results/returned None
+                    flash("An error occured. Please try again")
+                    return redirect("/adv-search")
+            else:  # author is not in database ..
+
+                db.session.add(Author(author_name=author_name, goodreads_id=actual_id))
             # then search, I guess? IDK how I want to display this yet
         else:  # if no author id is returned
             flash("Could not find an author with that name. Please try again.")
             return redirect("/adv-search")
 
 
-@app.route("/author-series-result", methods=["POST"])
-def show_series_info_by_author():
-    series_id = request.form.get("series")
-    if series_id:  # if there is a series id
-        # do a request
-        # if request is good, search by series
-        # then add series to database
-        # which means I need its NAME
-        pass
+@app.route("/series-result.json", methods=["POST"])
+def show_series_results():
+    series_id = request.form.get("id")
+    series_name = request.form.get("name")
+    if series_id and series_name:  # if there is a series id and name
+        results = get_last_book_of_series(series_name, series_id)
+
+        db.session.add(Series(goodreads_id=series_id, series_name=series_name))
+        db.session.commit()
+
+        return jsonify(results)
     else:
         flash("An error occured. Please try again.")
         return redirect("/adv-search")
@@ -272,9 +296,11 @@ def search_by_book():
 
 @app.route("/book-series", methods=["POST"])
 def series_by_books():
-    book_id = request.form.get("book")
-    # might want book name for display purposes, so having the same issue as with the series search
-    title = "Series That {} Belong To".format("book_name")
+    book_info = request.form.get("book").split("||")
+    book_id = book_info[0].strip()
+    book_name = book_info[1].strip()
+
+    title = "Series That {} Belong To".format(book_name)
     if book_id:
         payload = {"key": goodreads_key}
         url = "https://www.goodreads.com/work/{}/series".format(book_id)
@@ -511,41 +537,3 @@ if __name__ == "__main__":
     connect_to_db(app)
     DebugToolbarExtension(app)
     app.run(host="0.0.0.0")
-
-
-
-########OLD CODE SAVED FOR POSTERITY ##############################
-
-            # if len(all_series) == 0:
-            #     # series_info.append(("No series found", "Please try another author"))
-            #     # need to do something new now that it's a dictionary
-            #     pass
-
-            # elif len(all_series) == 1:
-            #     series_info[all_series[0].find("series").find("id").text] = all_series[0].find("series").find("title").text.strip()
-            # else:
-            #     # need to do a dictionary comprehension here. or not? Not sure if it's helpful
-            #     by_user_position = {}
-            #     for node in all_series:
-            #         user_position = node.find("user_position").text
-            #         # maybe this should be a dictionary of dictionaries
-            #         if user_position in by_user_position:
-            #             by_user_position[user_position].append(node)
-            #         else:
-            #             by_user_position[user_position] = []
-
-            #     user_position_values = [node.find("user_position").text for node in all_series if node.find("user_position").text is not None]
-
-            #     if user_position_values:
-            #         user_position = min(u for u in user_position_values if u >= "1")
-            #         for node in all_series:
-            #             # more fun stuff: user_position is not guaranteed to be one! How do I want to deal with this?
-            #             if node.find("user_position").text == user_position:
-            #                 # tuple with structure name, id
-            #                 series_info.append((node.find("series").find("title").text.strip(),
-            #                                     node.find("series").find("id").text))
-
-            #     else:  # all are None
-            #         for node in all_series:
-            #             series_info.append((node.find("series").find("title").text.strip(),
-            #                                 node.find("series").find("id").text))
