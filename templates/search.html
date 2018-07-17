@@ -13,7 +13,7 @@
     And I rather NOT code that all in the page because that feels weird
     It would be cool to make it show up dynamically though
 -->
-<form action="/search" method="POST">
+<form id="search" action="/search" method="POST">
     Author: <input type="text" name="author"><br>
     Series: <select name="series"> 
     <option selected value> -- select an option -- </option>{% for s in series %}
@@ -24,8 +24,25 @@
 
     <input type="Submit" value="Search">
 </form>
-
+<div id="results"> </div>
 {% if "search_history" in session %}
 {{ session.search_history }}
 {% endif %}
+
+<script>
+
+$("#search").on("submit", function(evt){
+    // evt.preventDefault();
+    let author;
+    let series;
+    // need to check to see what javascript gets from an empty field
+
+});
+// Things I need to put in here:
+// Check to see if at least one field is filled out
+// If not, complain (if zero or two)
+// if author is filled out, do an author query
+// else do a series query
+// and shove the results into the div land
+</script>
 {% endblock %}

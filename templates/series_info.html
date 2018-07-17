@@ -5,10 +5,26 @@
 <h2> Favorited by {{ series.favorited_by|length }} people </h2>
 
 {% if "user_id" in session %}
-<h2> Track this series! </h2>
-<form action="something">
-    <input type="submit">
+<h2> Favorite this series! </h2>
+<form id="fav-series">
+    <input type="submit" value="Favorite">
 </form>
+{% endif %}
+
+<div id="results"> </div>
+
+{% if "user_id" in session %}
+<script>
+$("#fav-series").on("submit", function(evt){
+    evt.preventDefault();
+    let formInputs = {"user_id": {{ session["user_id"] }},
+                   "series_id": {{ series.series_id}} };
+
+    $.post("/update-fav-series.json", formInputs, function(results){
+        $("#results").text(results.result);
+    });
+});
+</script>
 {% endif %}
 
 {% endblock %}

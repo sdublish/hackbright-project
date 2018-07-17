@@ -9,8 +9,6 @@ def load_users():
     print("Loading users")
     """ Loads test users into database"""
 
-    # delete all rows so we don't add duplicate info
-
     db.session.add(User(fname="Bob", lname="Bob", email="bob@bob.com", password="bob"))
     db.session.add(User(fname="Jane", lname="Debug", email="jdebug@gmail.com", password="bugs"))
     db.session.add(User(fname="Sam", lname="Dragon", email="sdragon@hotmail.com", password="dragons"))
@@ -22,8 +20,6 @@ def load_users():
 def load_authors():
     print("Loading authors")
     """Loads sample authors into database"""
-
-    # delete all rows so we don't add duplicate info
 
     db.session.add(Author(author_name="Brandon Sanderson", goodreads_id="38550"))
     db.session.add(Author(author_name="William Shakespeare", goodreads_id="947"))
@@ -38,8 +34,6 @@ def load_fav_authors():
     """Loads sample users' favorite authors into database"""
     print("Loading favorite authors")
 
-    # delete all rows so we don't add duplicate info
-
     db.session.add(Fav_Author(user_id=1, author_id=4))
     db.session.add(Fav_Author(user_id=2, author_id=3))
     db.session.add(Fav_Author(user_id=2, author_id=1))
@@ -52,8 +46,6 @@ def load_series():
     """Loads sample series into database"""
     print("Loading series")
 
-    # delete all rows so we don't add duplicate info
-
     db.session.add(Series(series_name="Mistborn", goodreads_id="40910"))
     db.session.add(Series(series_name="Harry Potter", goodreads_id="45175"))
     db.session.add(Series(series_name="The Giver", goodreads_id="43606"))
@@ -64,8 +56,6 @@ def load_series():
 def load_fav_series():
     """ Loads sample favorite series into database"""
     print("Loading favorite series")
-
-    # delete all rows so we don't add duplicate info
 
     db.session.add(Fav_Series(user_id=2, series_id=1))
     db.session.add(Fav_Series(user_id=3, series_id=3))

@@ -13,24 +13,18 @@ from jinja2 import StrictUndefined
 app = Flask(__name__)
 app.jinja_env.undefined = StrictUndefined
 
-# note need to run secrets file in order to set secret key
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 goodreads_key = os.environ["GOODREADS_API_KEY"]
 google_books_key = os.environ["GOOGLE_BOOKS_API_KEY"]
 
 
-def get_author_goodreads_id(author_name):
-    """ Given author name, returns Goodreads ID associated with name, if it exists.
-    Otherwise returns None."""
-    # can change this so it sends author name
-    # ... just for that one use case? IDK I don't know if that's a good idea...
-    # python is special casess aren't that special
-    # and I can literally avoid making an API call if I just give that info again
-    # also this tree is SUPER SMALL
-    # so it might be a good idea to just... send the tree info in a different way
+def get_author_goodreads_info(author_name):
+    """ Given author name, returns (goodreads_id, goodreads_name), if it exists.
+    Otherwise returns (None, None)."""
     payload = {"key": goodreads_key}
     url = "https://www.goodreads.com/api/author_url/{}".format(author_name)
     goodreads_id = None
+    goodreads_name = None
 
     response = requests.get(url, params=payload)
 
@@ -38,14 +32,21 @@ def get_author_goodreads_id(author_name):
         tree = ET.fromstring(response.content)
         if tree.find("author"):
             goodreads_id = tree.find("author").attrib["id"]
+            goodreads_name = tree.find("author").find("name").text
             # if this is a dictionary, can't I solve this with get?
             # well, not if the dictionary doesn't exist in the first place?
             # Need to check on this
 
-    return goodreads_id
+    return (goodreads_id, goodreads_name)
 
 
 def sort_series(series_list):
+    """ Given a list of series nodes based off a response from the Goodreads API,
+    returns all the series  with sharing the lowest user_position value. If there is
+    no series, returns an empty dictionary. If there are only series with no user_position
+    value, returns a dictionary containing all unique series. Lowest user_position
+    value which will be returned is 1. Result format:
+    { series_id : series_title}"""
     by_user_position = {}
 
     for series in series_list:
@@ -55,6 +56,7 @@ def sort_series(series_list):
 
         if user_position in by_user_position:
             by_user_position[user_position][series_id] = series_name
+
         else:
             by_user_position[user_position] = {series_id: series_name}
 
@@ -62,6 +64,7 @@ def sort_series(series_list):
         return {}
 
     elif len(by_user_position) == 1:
+        # i could also just get the first thing in the list of values...
         return by_user_position.popitem()[1]
 
     else:
@@ -81,6 +84,7 @@ def get_series_list_by_author(author_id):
 
         else:  # no series found
             return {}
+
     else:  # could not make a response, or something happened
         return None
 
@@ -90,23 +94,25 @@ def get_last_book_of_series(series_name, series_id):
     response = requests.get(" https://www.goodreads.com/series/show/", params=payload)
     # also need to do some checks to make sure everything is working well with the API
     tree = ET.fromstring(response.content)
-    #so, first, I need to know how many books are in this series
-    #note I can chain find/findalls together to make my thought process clearer
     series_length = tree.find("series").find("primary_work_count").text
+    # series length should be an integer, so I don't need to worry about working with strings, I think
     series_works = list(tree.find("series").find("series_works"))  # a list of all the books in said series
-    # what if I could sort the roots by publication order?
-    # woud make traversing a lot easier
-    # how do I want to deal when no user_position is given?
-    # probably do some handling and make it so that None is now a string which makes sense
-    # I can edit the tree, after all.
-    # lst2 = sorted(series_works, key=lambda work: work.find("user_position").text, reverse=True)
-    # print(lst2)
+    by_user_position = {}
+    for work in series_works:
+        user_position = work.find("user_position").text
+        # user position, at least in a series, seems to be pretty unique
+        by_user_position[user_position] = work
+
     title = None
     published = None
-    for work in series_works:
-        if work.find("user_position").text == series_length:
-            title = work.find("work").find("original_title").text
-            published = work.find("work").find("original_publication_year").text
+
+    while title is None and series_length >= "1":
+        work = by_user_position[series_length]  # maybe do get here so i don't get a key error
+        title = work.find("work").find("original_title").text
+        published = work.find("work").find("original_publication_year").text
+        series_length = str(int(series_length) - 1)
+
+    # I could do a check here seeing if title is none, and replacing it with something else
 
     print(title, published)
     if "search_history" in session:
@@ -133,11 +139,11 @@ def show_search():
 def search():
     author = request.form.get("author")
     series_name = request.form.get("series")
-    print(series_name)
 
     if author and series_name:
         flash("Please enter only one!")
         return redirect("/search")
+
     elif author:
         payload = {"q": "inauthor:" + author,
                    "langRestrict": "en",
@@ -154,22 +160,37 @@ def search():
             results = response.json()  # returns a very complicated dictionary
             next_book = results["items"][0]["volumeInfo"]
 
-            # seems like the best way to get the correct publication info is to go straight to the book. Multiple API calls, yay!
+            next_book_id = results["items"][0]["id"]
+
+            payload_2 = {"key": google_books_key}
+            url = "https://www.googleapis.com/books/v1/volumes/{}".format(next_book_id)
+
+            r2 = requests.get(url, params=payload_2)
+            # can do another check here to see if request went okay
+            results_2 = r2.json()
+            published_date = results_2["volumeInfo"]["publishedDate"]
+
+            # seems like the best way to get thww correct publication info is to go straight to the book. Multiple API calls, yay!
             # Also, need to do more data validation stuff here.
 
-            print(next_book["title"], next_book["publishedDate"])
+            print(next_book["title"], published_date)
+
             if "search_history" in session:
-                session["search_history"].append((author, next_book["title"], next_book["publishedDate"]))
+                session["search_history"].append((author, next_book["title"], published_date))
+
             flash("Something happened!")
             return redirect("/search")
 
         else:
-            flash("Something went wrong :(")
+            flash("Something went wrong")
             return redirect("/search")
+
     elif series_name:
         series = Series.query.filter_by(series_name=series_name).first()
         if series.goodreads_id:
             get_last_book_of_series(series_name, series.goodreads_id)
+            # how do I want to do the search for the publication date?
+            # do I simply want to do an author search and go from there?
 
             flash("Something happened!")
             return redirect("/search")
@@ -193,9 +214,9 @@ def search_by_author():
     author_name = request.form.get("author")
     # need to make sure we actually got an input from author?
     author = Author.query.filter_by(author_name=author_name).first()
-    title = "Series by {}".format(author_name)
 
     if author:  # author is in database
+        title = "Series by {}".format(author_name)
         if author.goodreads_id:  # if author has goodreads id
                 series_info = get_series_list_by_author(author.goodreads_id)
                 if series_info is not None:  # if we get results
@@ -207,7 +228,7 @@ def search_by_author():
                     return redirect("/adv-search")
 
         else:  # author does not have a goodreads id
-            actual_id = get_author_goodreads_id(author_name)
+            actual_id = get_author_goodreads_info(author_name)[0]
 
             if actual_id:  # if you get a goodreads id
                 author.goodreads_id = actual_id
@@ -227,23 +248,38 @@ def search_by_author():
                 return redirect("/adv-search")
 
     else:  # author is not in database
-        actual_id = get_author_goodreads_id(author_name)
-        print(actual_id)
-        if actual_id:
-            possible_author = Author.query.filter_by(goodreads_id=actual_id).first()
+        # can you unpack a tuple? Might make sense here
+        actual_info = get_author_goodreads_info(author_name)
+
+        if actual_info[0]:
+            possible_author = Author.query.filter_by(goodreads_id=actual_info[0]).first()
+
             if possible_author:  # if there was a typo that goodreads handled
                 series_info = get_series_list_by_author(possible_author.goodreads_id)
+
                 if series_info is not None:  # if we get results
-                    # also I probably should add search results to search history as well
+                    flash("Showing results for {} instead of {}".format(possible_author.author_name, author_name))
+                    title = "Series by {}".format(possible_author.author_name)
                     return render_template("series_results.html", series=series_info, title=title)
 
                 else:  # did not get results/returned None
                     flash("An error occured. Please try again")
                     return redirect("/adv-search")
-            else:  # author is not in database ..
+            else:  # author is not in database
+                db.session.add(Author(author_name=actual_info[1], goodreads_id=actual_info[0]))
+                db.session.commit()
+                series_info = get_series_list_by_author(actual_info[0])
 
-                db.session.add(Author(author_name=author_name, goodreads_id=actual_id))
-            # then search, I guess? IDK how I want to display this yet
+                if series_info is not None:  # if we get results
+                    if author_name != actual_info[1]:
+                        flash("Showing results for {} instead of {}".format(actual_info[1], author_name))
+                    title = "Series by {}".format(actual_info[1])
+                    return render_template("series_results.html", series=series_info, title=title)
+
+                else:  # did not get results/returned None
+                    flash("An error occured. Please try again")
+                    return redirect("/adv-search")
+
         else:  # if no author id is returned
             flash("Could not find an author with that name. Please try again.")
             return redirect("/adv-search")
@@ -253,14 +289,17 @@ def search_by_author():
 def show_series_results():
     series_id = request.form.get("id")
     series_name = request.form.get("name")
+
     if series_id and series_name:  # if there is a series id and name
         results = get_last_book_of_series(series_name, series_id)
 
-        db.session.add(Series(goodreads_id=series_id, series_name=series_name))
-        db.session.commit()
+        if not Series.query.filter_by(goodreads_id=series_id).first():  # if series is not in database
+            db.session.add(Series(goodreads_id=series_id, series_name=series_name))
+            db.session.commit()
 
         return jsonify(results)
-    else:
+
+    else:  # should think if I really want this redirect here
         flash("An error occured. Please try again.")
         return redirect("/adv-search")
 
@@ -296,6 +335,7 @@ def search_by_book():
 
 @app.route("/book-series", methods=["POST"])
 def series_by_books():
+    # could definitely do unpacking here, if I wanted to
     book_info = request.form.get("book").split("||")
     book_id = book_info[0].strip()
     book_name = book_info[1].strip()
@@ -305,7 +345,6 @@ def series_by_books():
         payload = {"key": goodreads_key}
         url = "https://www.goodreads.com/work/{}/series".format(book_id)
         response = requests.get(url, params=payload)
-        print(response)
 
         if response.status_code == 200:
             tree = ET.fromstring(response.content)
@@ -389,6 +428,7 @@ def signup():
 
             user_id = User.query.filter_by(email=email).first().user_id
             session["user_id"] = user_id
+            session["search_history"] = []
 
             flash("You are now logged in, {}!".format(fname))
 
@@ -402,7 +442,9 @@ def signup():
 @app.route("/user/<user_id>")
 def show_profile(user_id):
     user = User.query.get(user_id)
-    return render_template("user_info.html", user=user)
+    fav_series_id = [s.series_id for s in Fav_Series.query.filter_by(user_id=user_id).all()]
+    series = Series.query.filter(db.not_(Series.series_id.in_(fav_series_id))).all()
+    return render_template("user_info.html", user=user, series=series)
 
 
 @app.route("/update-profile", methods=["POST"])
@@ -430,7 +472,7 @@ def update_profile():
 @app.route("/update-authors", methods=["POST"])
 def update_authors():
     user_id = request.form.get("user_id")
-    unfav_authors = request.form.get("author-remove")
+    unfav_authors = request.form.getlist("author-remove")
     new_authors = request.form.get("new-author").strip().splitlines()
 
     if unfav_authors:
@@ -438,60 +480,98 @@ def update_authors():
             author = Fav_Author.query.filter_by(author_id=author_id, user_id=user_id).first()
             if author:
                 db.session.delete(author)
+                flash("Successfully removed {}".format(author.author.author_name))
 
     if new_authors:
         for author_name in new_authors:
             author = Author.query.filter_by(author_name=author_name).first()
 
             if author:  # if author in database
-                if Fav_Author.query.filter_by(author_id=author.author_id, user_id=user_id):
+                if Fav_Author.query.filter_by(author_id=author.author_id, user_id=user_id).first():
                     flash("You already liked {}!".format(author.author_name))
 
                 else:
                     db.session.add(Fav_Author(author_id=author.author_id, user_id=user_id))
+                    flash("Successfully added {}".format(author_name))
             else:  # if author is NOT in database
-                goodreads_id = get_author_goodreads_id(author_name)
+                goodreads_info = get_author_goodreads_info(author_name)
 
-                # since Goodreads does some sort of spell-check before returning results, use goodreads name!
-                # if id does not exist... still add author?
+                if author_name != goodreads_info[1]:  # name entered and name returned from goodreads do not match (indicates typo)
+                    flash("Could not find {}. Did you mean {}?".format(author_name, goodreads_info[1]))
 
-                db.session.add(Author(author_name=author_name, goodreads_id=goodreads_id))
-                db.session.commit()
+                else:  # author is definitely NOT in database
+                    db.session.add(Author(author_name=goodreads_info[1], goodreads_id=goodreads_info[0]))
+                    db.session.commit()
 
-                author_id = Author.query.filter_by(author_name=author_name).first().author_id
-                db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
+                    author_id = Author.query.filter_by(author_name=author_name).first().author_id
+                    db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
+                    flash("Successfully added {}".format(author_name))
 
     db.session.commit()
-    flash("Authors successfully updated")
     return redirect("/user/{}".format(user_id))
+
+
+@app.route("/update-fav-author.json", methods=["POST"])
+def update_fav_author():
+    user_id = request.form.get("user_id")
+    author_id = request.form.get("author_id")
+
+    if user_id and author_id:
+        if Fav_Author.query.filter_by(author_id=author_id, user_id=user_id).first():
+            return jsonify({"result": "You have already favorited this author!"})
+
+        else:
+            db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
+            db.session.commit()
+            return jsonify({"result": "New favorite author added!"})
+    else:
+        return jsonify({"result": "Something went wrong."})
 
 
 @app.route("/update-series", methods=["POST"])
 def update_series():
     user_id = request.form.get("user_id")
-    unfav_series = request.form.get("series-remove")
-    # new_series = request.form.get("new-series").strip().splitlines()
+    unfav_series = request.form.getlist("series-remove")
+    new_series = request.form.getlist("series-add")
 
     if unfav_series:
         for series_id in unfav_series:
             series = Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first()
             if series:
                 db.session.delete(series)
+                flash("Successfully removed {}".format(series.series.series_name))
 
-    if new_series:  # if I can't figure out a good way to handle this, I'm going to have to remove this functionality
-        for series_name in new_series:
-            series = Series.query.filter_by(series_name=series_name).first()
-            if series:
+    if new_series:
+        for series_id in new_series:
+            series = Series.query.get(series_id)
+            if Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first():
+                flash("You already liked {}!".format(series.series_name))
 
-                if Fav_Series.query.filter_by(series_id=series.series_id, user_id=user_id):
-                    flash("You already liked {}!".format(series.series_name))
+            else:
+                db.session.add(Fav_Series(series_id=series_id, user_id=user_id))
 
-                else:
-                    db.session.add(Fav_Series(series_id=series.series_id, user_id=user_id))
+    # maybe figure out I want to handle if the series check fails later...
 
     db.session.commit()
     flash("Series successfully updated")
     return redirect("/user/{}".format(user_id))
+
+
+@app.route("/update-fav-series.json", methods=["POST"])
+def update_fav_series():
+    user_id = request.form.get("user_id")
+    series_id = request.form.get("series_id")
+
+    if user_id and series_id:
+        if Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first():
+            return jsonify({"result": "You have already favorited this series!"})
+
+        else:
+            db.session.add(Fav_Series(series_id=series_id, user_id=user_id))
+            db.session.commit()
+            return jsonify({"result": "New favorite series added!"})
+    else:
+        return jsonify({"result": "Something went wrong"})
 
 
 @app.route("/author/<author_id>")
@@ -499,10 +579,9 @@ def show_author_info(author_id):
     author = Author.query.get(author_id)
 
     if author.goodreads_id is None:
-        author.goodreads_id = get_author_goodreads_id(author.author_name)
-        # query goodreads to see if there is an id
-        # if so, set it
-        # otherwise, don't do anything
+        # author.goodreads_id = get_author_goodreads_info(author.authoruthor_name)[0]
+        # db.session.commit()
+        pass
 
     if author.goodreads_id:
         payload = {"id": author.goodreads_id, "key": goodreads_key}
@@ -511,7 +590,7 @@ def show_author_info(author_id):
         tree = ET.fromstring(response.content)
         author_info = tree.find("author")
         # info to display: total works, gender, list of series, list of works
-        pass
+        return render_template("author_info.html", author=author)
 
     else:
         # display something else

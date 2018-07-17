@@ -5,10 +5,24 @@
 <h2> Favorited by {{ author.favorited_by|length }} people </h2>
 
 {% if "user_id" in session %}
-<h2> Track this author! </h2>
-<form action="something">
-    <input type="submit">
+<h2> Favorite this author! </h2>
+<form id="fav-author">
+    <input type="submit" value="Favorite">
 </form>
 {% endif %}
+<br> <br>
+<div id="results"> </div>
 
+{% if "user_id" in session %}
+<script>
+$("#fav-author").on("submit", function(evt){
+    evt.preventDefault();
+    let formInputs = {"user_id": {{ session["user_id"] }},
+                   "author_id": {{ author.author_id}} };
+    $.post("/update-fav-author.json", formInputs, function(results){
+        $("#results").text(results.result);
+    });
+});
+</script>
+{% endif %}
 {% endblock %}

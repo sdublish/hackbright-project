@@ -45,8 +45,10 @@ List the authors you would like to add on a new line:<br>
 <input type="hidden" name="user_id" value="{{ user.user_id }}">
 Check any series you would like to remove: <br>{% for fs in user.fav_series %}
 <input type="checkbox" name="series-remove" value="{{ fs.series_id}}"> {{ fs.series.series_name }}<br> {% endfor %}<br>
-<!-- List the series you would like to add on a new line: <br>
-<textarea name="new-series"></textarea><br> -->
+Please select which series you would like to add: <br>
+{% for s in series %}
+<input type="checkbox" name="series-add" value="{{ s.series_id }}"> {{ s.series_name }} </br>
+{% endfor %}
 <input type="Submit" value="Update">
 </form>
 

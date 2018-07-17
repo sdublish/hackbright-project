@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %} Search By Author Results {% endblock %}
+{% block title %} {{ title }} {% endblock %}
 {% block content %}
 <h1> {{ title }} </h1>
 {% if series|length > 0 %}
@@ -9,6 +9,7 @@
 {% endfor %}
 <input type="submit" name="Look up series">
 </form>
+<div id="results"> </div>
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 {% else %}
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
@@ -16,7 +17,10 @@
 
  <script>
     function showResults(result){
-        console.log(result);
+        let title = result.title;
+        let published = result.published;
+        let phrase = `${title} was published in ${published}.`;
+        $("#results").text(phrase);
     }
 function searchSeries(evt){
     evt.preventDefault();
