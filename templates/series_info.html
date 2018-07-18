@@ -4,17 +4,41 @@
 <h1> {{ series.series_name }} </h1>
 <h2> Favorited by {{ series.favorited_by|length }} people </h2>
 
+{% if info %}
+<p> ~Info provided by Goodreads ~ </p>
+{% if info.description %}
+<p> Description: {{ info.description }} </p>
+{% else %}
+<p> No description provided. </p>
+{% endif %}
+<p> Number of works: {{ info.length }} </p>
+<p> Works in series: </p>
+<ul> {% for work in info.works %}
+    <li> {{ work }} </li>
+{% endfor %}
+</ul>
+
+
+{% else %}
+<p> Could not get info from Goodreads. Please try again. </p>
+{% endif %}
+
 {% if "user_id" in session %}
 <h2> Favorite this series! </h2>
 <form id="fav-series">
     <input type="submit" value="Favorite">
 </form>
 {% endif %}
+<br> <br> 
 
 <div id="results"> </div>
 
 {% if "user_id" in session %}
 <script>
+// Apparently jinja in javascript is bad
+// Consider changing this into React, I guess?
+// But then I can't use jQuery
+// ... can it still be loaded in for the page?
 $("#fav-series").on("submit", function(evt){
     evt.preventDefault();
     let formInputs = {"user_id": {{ session["user_id"] }},

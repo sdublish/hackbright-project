@@ -3,6 +3,20 @@
 {% block content %}
 <h1> {{ author.author_name }} </h1>
 <h2> Favorited by {{ author.favorited_by|length }} people </h2>
+{% if info %}
+<p> ~Info from Goodreads ~ </p>
+<p> Description: {{ info.description }} </p>
+<p> Gender: {{ info.gender }} </p>
+{% if info.bday %}
+<p> Born: {{ info.bday }} </p>
+{% endif %}
+{% if info.dday %}
+<p> Died: {{ info.dday }} </p>
+{% endif %}
+
+{% else %}
+<p> No information available at this time. </p>
+{% endif %}
 
 {% if "user_id" in session %}
 <h2> Favorite this author! </h2>
@@ -15,6 +29,10 @@
 
 {% if "user_id" in session %}
 <script>
+// Apparently jinja in javascript is bad
+// Consider changing this into React, I guess?
+// But then I can't use jQuery
+// ... can it still be loaded in for the page?
 $("#fav-author").on("submit", function(evt){
     evt.preventDefault();
     let formInputs = {"user_id": {{ session["user_id"] }},

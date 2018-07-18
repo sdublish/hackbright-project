@@ -6,7 +6,12 @@
 <form action="/series-result" id="series-search" method="POST">
 {% for id, name in series.items() %}
 <input type="radio" value= "{{ id }}" name="series"> <span id="{{ id }}">{{ name }} </span><br>
-{% endfor %}
+{% endfor %}<br>
+<!-- Will need to pass date info into AJAX to make it work -->
+Publishing Date Timeframe: <br>
+    <input type="radio" name="timeframe" checked value="0"> Default <br>
+    <input type="radio" name="timeframe" value="183"> Next Six Months <br>
+    <input type="radio" name="timeframe" value="365"> Next Year <br>
 <input type="submit" name="Look up series">
 </form>
 <div id="results"> </div>
@@ -16,12 +21,14 @@
 {% endif %}
 
  <script>
-    function showResults(result){
-        let title = result.title;
-        let published = result.published;
-        let phrase = `${title} was published in ${published}.`;
-        $("#results").text(phrase);
-    }
+ // Need to attach 'get date on submit' to button as well
+function showResults(result){
+    let title = result.title;
+    let published = result.published;
+    let phrase = `${title} was published in ${published}.`;
+    $("#results").text(phrase);
+}
+
 function searchSeries(evt){
     evt.preventDefault();
     let seriesID = $('input[name=series]:checked').val();

@@ -2,8 +2,7 @@
 {% block title %} {{ user.fname }}'s Info {% endblock %}
 {% block content %}
 <h1> {{ user.fname }} {{ user.lname }} </h1>
-<!-- Privacy settings for user??? Not an easy way to set that up with my current system. Could add more fields to store that info.
-To make it truly private, we would want to pass in those fields separately instead of passing in an object with access to all those fields. ... Interesting idea. Will think about. -->
+<!-- Privacy settings for user??? -->
 
 <p> Favorite book: {{ user.fav_book }} </p>
 
@@ -18,6 +17,13 @@ To make it truly private, we would want to pass in those fields separately inste
     <li> {{ fs.series.series_name }} </li>
 {% endfor %}
 </ul></p>
+<h3> Search History </h3>
+<!-- Possibly an if check here to change what's displayed when there is no search history -->
+<ul>
+{% for item in session.get("search_history") %}
+<li> {{ item }}</li>
+{% endfor %}
+</ul>
 <h3> Update Profile </h3>
 <!--Another thing which I neeed to think about... how to update profile (and database!) without changing the page. I think I can AJAX it, but let's first try to get that set up without AJAX -->
 
