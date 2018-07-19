@@ -7,34 +7,44 @@
 {% for id, name in series.items() %}
 <input type="radio" value= "{{ id }}" name="series"> <span id="{{ id }}">{{ name }} </span><br>
 {% endfor %}<br>
-<!-- Will need to pass date info into AJAX to make it work -->
 Publishing Date Timeframe: <br>
     <input type="radio" name="timeframe" checked value="0"> Default <br>
     <input type="radio" name="timeframe" value="183"> Next Six Months <br>
     <input type="radio" name="timeframe" value="365"> Next Year <br>
 <input type="submit" name="Look up series">
 </form>
-<div id="results"> </div>
+<p id="result"></p>
+<p id="most-recent"></p>
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 {% else %}
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
 {% endif %}
 
  <script>
- // Need to attach 'get date on submit' to button as well
 function showResults(result){
-    let title = result.title;
-    let published = result.published;
-    let phrase = `${title} was published in ${published}.`;
-    $("#results").text(phrase);
+    let title = result.most_recent[0];
+    let published = result.most_recent[1];
+    let results = result.results;
+    let rPhrase;
+    if (results[0] === null) {
+        rPhrase = "No books found in timeframe.";
+    } else {
+        rPhrase = `Results: ${results[0]}, publication date: ${results[1]}.`;
+    }
+    let mrPhrase = `Most recently released: ${title}, publication date: ${published}.`;
+    $("#result").text(rPhrase);
+    $("#most-recent").text(mrPhrase);
 }
 
 function searchSeries(evt){
     evt.preventDefault();
+    let date = new Date();
+    date = date.toDateString();
+    let td = $("input[name=timeframe]:checked").val();
     let seriesID = $('input[name=series]:checked').val();
     let IDAsString = `#${seriesID}`;
     let seriesName = $(IDAsString).text();
-    let formInputs = {'id': seriesID, 'name': seriesName};
+    let formInputs = {'id': seriesID, 'name': seriesName, 'date': date, 'timeframe': td};
     $.post("/series-result.json", formInputs, showResults);
 }
 

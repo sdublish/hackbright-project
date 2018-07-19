@@ -6,7 +6,7 @@
 
 <p> Favorite book: {{ user.fav_book }} </p>
 
-{% if session.user_id == user.user_id %}
+{% if session.get("user_id") == user.user_id %}
 <p> Age: {{ user.age }} </p>
 <p> Zipcode: {{ user.zipcode }} </p>
 <p> Favorite authors: <ul>{% for fav_author in user.fav_authors %} 

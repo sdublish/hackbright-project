@@ -2,6 +2,7 @@
 import os
 import requests
 import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
 
 from flask import Flask, session, request, render_template, redirect, flash, jsonify
 from model import connect_to_db, User, Author, Fav_Author, Series, Fav_Series, db
@@ -17,6 +18,27 @@ app.jinja_env.undefined = StrictUndefined
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 goodreads_key = os.environ["GOODREADS_API_KEY"]
 google_books_key = os.environ["GOOGLE_BOOKS_API_KEY"]
+
+
+class MLStripper(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.reset()
+        self.strict = False
+        self.convert_charrefs = True
+        self.fed = []
+
+    def handle_data(self, d):
+        self.fed.append(d)
+
+    def get_data(self):
+        return ''.join(self.fed)
+
+
+def strip_tags(html):
+    s = MLStripper()
+    s.feed(html)
+    return s.get_data()
 
 
 def convert_string_to_datetime(date_string):
@@ -104,13 +126,13 @@ def get_series_list_by_author(author_id):
         return None
 
 
-def get_last_book_of_series(series_name, series_id):
+def get_last_book_of_series(series_name, series_id, date, timeframe):
     payload = {"key": goodreads_key, "id": series_id}
     response = requests.get("https://www.goodreads.com/series/show/", params=payload)
     # also need to do some checks to make sure everything is working well with the API
     tree = ET.fromstring(response.content)
     series_length = tree.find("series").find("primary_work_count").text
-    series_works = list(tree.find("series").find("series_works"))  # a list of all the books in said series
+    series_works = list(tree.find("series").find("series_works"))
     by_user_position = {}
 
     for work in series_works:
@@ -128,58 +150,106 @@ def get_last_book_of_series(series_name, series_id):
 
     while ('untitled' in title.lower() and published is None) and series_length >= "1":
         work = by_user_position[series_length]  # maybe do get here so i don't get a key error
-        title = work.find("work").find("best_book").find("title").text
-        p_year = work.find("work").find("original_publication_year").text
-        p_month = work.find("work").find("original_publication_month").text
-        p_date = work.find("work").find("original_publication_day").text
-
-        if p_month in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-            p_month = "0" + p_month
-
-        if p_date in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-            p_date = "0" + p_date
-
-        # if statements can definitely be cleaned up
-        if p_year and p_month and p_date:
-            published = "{}-{}-{}".format(p_year, p_month, p_date)
-
-        elif p_year and p_month:
-            published = "{}-{}".format(p_year, p_month)
-
-        elif p_year:
-            published = p_year
+        work_info = get_info_for_work(work)
+        title = work_info["title"]
+        published = work_info["published"]
 
         series_length = str(int(series_length) - 1)
 
     if published is None:  # if it still can't find a date... look at a different API
-        payload = {"q": title,
-                   "langRestrict": "en",
-                   "printType": "books",
-                   "key": google_books_key
-                   }
-        # might consider some more checks to make sure search is going okay
-
-        r2 = requests.get("https://www.googleapis.com/books/v1/volumes", params=payload)
-        r2_json = r2.json()
-        published = r2_json["items"][0]["volumeInfo"]["publishedDate"]
-        # include the check which is in author search
+        published = get_pub_date_with_title(title)
 
     most_recent = (title, published)
-    result = None
+    result = most_recent
 
     pdate = convert_string_to_datetime(published)
-    # add the title and published date to results (most recent)
 
-    # then check to see if datetime object is in between times provided
-    # if it is, add to results (yes, can be duplicate info)
-    # if not ... go to next book and see if it fits criteria
-    # if nothing fits, return something which is like nothing or something like that?
+    if timeframe and not (date <= pdate <= date + timeframe):
+        if pdate < date:
+            result = (None, None)
+        else:
+            while series_length >= "1":
+                work = by_user_position[series_length]
+                work_info = get_info_for_work(work)
+                title2 = work_info["title"]
+                published2 = work_info["published"]
+
+                if published2 is None:  # if it still can't find a date... look at a different API
+                    published2 = get_pub_date_with_title(title)
+
+                pdate2 = convert_string_to_datetime(published2)
+
+                if pdate2 < date:
+                    result = (None, None)
+                    break
+                elif pdate <= pdate2 <= date + timeframe:
+                    result = (title2, pdate2)
+                    break
+
+                series_length = str(int(series_length) - 1)
+
+        if series_length == "0":
+            result = (None, None)
 
     print(most_recent)
-    if "search_history" in session:
-        session["search_history"].append((series_name, most_recent))
+    print(result)
 
-    return {'most_recent': most_recent, 'published': published}
+    if "search_history" in session:
+        session["search_history"].append([series_name, most_recent, result])
+
+    return {'most_recent': most_recent, 'results': result}
+
+
+def get_info_for_work(work):
+    title = work.find("work").find("best_book").find("title").text
+    author = work.find("work").find("best_book").find("author").find("name").text
+    pub = None
+
+    p_year = work.find("work").find("original_publication_year").text
+    p_month = work.find("work").find("original_publication_month").text
+    p_date = work.find("work").find("original_publication_day").text
+
+    if p_month in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+        p_month = "0" + p_month
+
+    if p_date in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
+        p_date = "0" + p_date
+
+    # if statements can definitely be cleaned up
+    if p_year and p_month and p_date:
+        pub = "{}-{}-{}".format(p_year, p_month, p_date)
+
+    elif p_year and p_month:
+        pub = "{}-{}".format(p_year, p_month)
+
+    elif p_year:
+        pub = p_year
+
+    return {'title': title, 'published': pub, "author": author}
+
+
+def get_pub_date_with_title(title):
+    payload = {"q": title,
+               "langRestrict": "en",
+               "printType": "books",
+               "key": google_books_key
+               }
+    # might consider some more checks to make sure search is going okay
+
+    r2 = requests.get("https://www.googleapis.com/books/v1/volumes", params=payload)
+    r2_json = r2.json()
+    google_id = r2_json["items"][0]["id"]
+    return get_pub_date_with_book_id(google_id)
+
+
+def get_pub_date_with_book_id(google_id):
+    payload = {"key": google_books_key}
+    url = "https://www.googleapis.com/books/v1/volumes/{}".format(google_id)
+
+    r2 = requests.get(url, params=payload)
+    # can do another check here to see if request went okay
+    results_2 = r2.json()
+    return results_2["volumeInfo"]["publishedDate"]
 
 
 @app.route("/")
@@ -203,7 +273,6 @@ def search():
     date_str = " ".join(date.split()[1:])
     py_date = datetime.strptime(date_str, "%b %d %Y")
     td = timedelta(days=timeframe)
-    # td will evaluate as False if days=0
 
     if author and series_name:
         flash("Please enter only one!")
@@ -226,39 +295,32 @@ def search():
 
             next_book_id = results["items"][0]["id"]
 
-            payload_2 = {"key": google_books_key}
-            url = "https://www.googleapis.com/books/v1/volumes/{}".format(next_book_id)
-
-            r2 = requests.get(url, params=payload_2)
-            # can do another check here to see if request went okay
-            results_2 = r2.json()
-            published_date = results_2["volumeInfo"]["publishedDate"]
+            published_date = get_pub_date_with_book_id(next_book_id)
             pdate = convert_string_to_datetime(published_date)
 
             most_recent = (next_book["title"], published_date)
-            result = None
+            result = most_recent
 
-            if td:
-                # check to see if book fits in timeframe
-                # if book was published before today, return None (display will be handled later)
-                # if not, loop through books until you do
-                pass
-            else:  # default search
-                result = most_recent
+            if td and not (py_date <= pdate <= py_date + td):
+                if pdate < py_date:
+                    result = (None, None)
+                else:
+                    for work in results["items"][1:]:
+                        date = get_pub_date_with_book_id(work["id"])
+                        pdate2 = convert_string_to_datetime(date)
 
-            # might make sense to change the order of these if statements around
+                        if pdate2 < py_date:
+                            result = (None, None)
+                            break
+                        elif py_date <= pdate2 <= py_date + td:
+                            result = (work["volumeInfo"]["title"], date)
+                            break
 
-            # need some sort of check for the date
-            # add this to results
-
-            # otherwise continue loop
-
-            # Also, need to do more data validation stuff here.
-
-            print(next_book["title"], published_date)
+            print(most_recent)
+            print(result)
 
             if "search_history" in session:
-                session["search_history"].append((author, next_book["title"], published_date))
+                session["search_history"].append([author, most_recent, result])
 
             flash("Something happened!")
             return redirect("/search")
@@ -270,10 +332,7 @@ def search():
     elif series_name:
         series = Series.query.filter_by(series_name=series_name).first()
         if series.goodreads_id:
-            # will probably need to pass in date/timeframe into this function to make it work
-            get_last_book_of_series(series_name, series.goodreads_id)
-            # how do I want to do the search for the publication date?
-            # do I simply want to do an author search and go from there?
+            get_last_book_of_series(series_name, series.goodreads_id, py_date, td)
 
             flash("Something happened!")
             return redirect("/search")
@@ -373,8 +432,15 @@ def show_series_results():
     series_id = request.form.get("id")
     series_name = request.form.get("name")
 
+    date = request.form.get("date")
+    date_str = " ".join(date.split()[1:])
+    py_date = datetime.strptime(date_str, "%b %d %Y")
+
+    timeframe = int(request.form.get("timeframe"))
+    td = timedelta(days=timeframe)
+
     if series_id and series_name:  # if there is a series id and name
-        results = get_last_book_of_series(series_name, series_id)
+        results = get_last_book_of_series(series_name, series_id, py_date, td)
 
         if not Series.query.filter_by(goodreads_id=series_id).first():  # if series is not in database
             db.session.add(Series(goodreads_id=series_id, series_name=series_name))
@@ -665,9 +731,10 @@ def show_author_info(author_id):
     author_info = {}
 
     if author.goodreads_id is None:
-        # author.goodreads_id = get_author_goodreads_info(author.authoruthor_name)[0]
-        # db.session.commit()
-        pass
+        possible_id = get_author_goodreads_info(author.author_name)[0]
+        if possible_id:
+            author.goodreads_id = possible_id
+            db.session.commit()
 
     if author.goodreads_id:
         payload = {"id": author.goodreads_id, "key": goodreads_key}
@@ -675,7 +742,7 @@ def show_author_info(author_id):
         # if response was successfully made
         tree = ET.fromstring(response.content)
         a_info = tree.find("author")
-        author_info["description"] = a_info.find("about").text
+        author_info["description"] = strip_tags(a_info.find("about").text)
         # need to clean up description somehow
         author_info["gender"] = a_info.find("gender").text
         # might want to modify how the date is shown?
@@ -703,19 +770,29 @@ def show_series_info(series_id):
         if response.status_code == 200:
             tree = ET.fromstring(response.content)
             s_info = tree.find("series")
-            series_info["description"] = s_info.find("description").text.strip()
+            series_info["description"] = strip_tags(s_info.find("description").text.strip())
             # need to clean up description for display purpose
             series_info["length"] = s_info.find("primary_work_count").text
             series_works = list(s_info.find("series_works"))
             series_info["works"] = []
 
             for work in series_works:
-                # positions = list(range(1, int(series_info["length"]) + 1))
-                # how do I want to do this??? you know what, right now let's just iterate through the whole thing
-                title = work.find("work").find("best_book").find("title").text
-                author = work.find("work").find("best_book").find("author").find("name").text
-                pub_date = work.find("work").find("original_publication_year").text
-                series_info["works"].append((title, author, pub_date))
+                valid_positions = [str(i) for i in range(1, int(series_info["length"]) + 1)]
+
+                if work.find("user_position").text in valid_positions:
+                    work_info = get_info_for_work(work)
+                    title = work_info["title"]
+                    pub_date = work_info["published"]
+
+                    if pub_date is None:
+                        if 'untitled' in title.lower():
+                            pub_date = "TBA"
+
+                        else:
+                            pub_date = get_pub_date_with_title(title)
+
+                    author = work_info["author"]
+                    series_info["works"].append((title, author, pub_date))
 
     return render_template("series_info.html", series=series, info=series_info)
 
