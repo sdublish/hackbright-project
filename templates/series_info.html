@@ -14,7 +14,7 @@
 <p> Number of works: {{ info.length }} </p>
 <p> Works in series: </p>
 <ul> {% for work in info.works %}
-    <li> {{ work }} </li>
+    <li> {{ work[0] }} by {{ work[1] }}, published {{ work[2] }} </li>
 {% endfor %}
 </ul>
 

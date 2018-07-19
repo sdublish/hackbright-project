@@ -4,18 +4,25 @@
 <h1> {{ author.author_name }} </h1>
 <h2> Favorited by {{ author.favorited_by|length }} people </h2>
 {% if info %}
-<p> ~Info from Goodreads ~ </p>
-<p> Description: {{ info.description }} </p>
-<p> Gender: {{ info.gender }} </p>
-{% if info.bday %}
-<p> Born: {{ info.bday }} </p>
-{% endif %}
-{% if info.dday %}
-<p> Died: {{ info.dday }} </p>
-{% endif %}
+{{ info }}
 
 {% else %}
 <p> No information available at this time. </p>
+{% endif %}
+
+<h3> Series by {{ author.author_name }} </h3>
+{% if author.goodreads_id %}
+{% if series %}
+<p> ~ Info by Goodreads ~ </p>
+<ul>
+{% for name in series.values() %}
+<li> {{ name }} </li>
+{% endfor %} </ul>
+{% else %}
+<p> No series are currently associated with this author. </p>
+{% endif %}
+{% else %}
+<p> Author is not in Goodreads, and therefore we cannot display series info. Apologies. </p>
 {% endif %}
 
 {% if "user_id" in session %}

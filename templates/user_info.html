@@ -18,12 +18,31 @@
 {% endfor %}
 </ul></p>
 <h3> Search History </h3>
-<!-- Possibly an if check here to change what's displayed when there is no search history -->
-<ul>
-{% for item in session.get("search_history") %}
-<li> {{ item }}</li>
-{% endfor %}
-</ul>
+<table>
+    <tr>
+        <th> Date Searched </th>
+        <th> Timeframe </th>
+        <th> Search Term </th>
+        <th> Most Recently Released </th>
+        <th> Search Result </th>
+    </tr>
+    {% for item in session.get("search_history") %}
+    <tr>
+        <td> {{ item[0] }} </td>
+        <td> {{ item [1] }} </td>
+        <td> {{ item[2] }} </td>
+        <td> {{ item[3][0] }}, publication date: {{ item[3][1] }} </td>
+        {% if item[4][1]%}
+         <td> {{ item[3][0] }}, publication date: {{ item[3][1] }} </td>
+
+        {% else %}
+         <td> No results found </td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+
+    </table>
+
 <h3> Update Profile </h3>
 <!--Another thing which I neeed to think about... how to update profile (and database!) without changing the page. I think I can AJAX it, but let's first try to get that set up without AJAX -->
 

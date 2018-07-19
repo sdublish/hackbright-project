@@ -13,8 +13,7 @@ Publishing Date Timeframe: <br>
     <input type="radio" name="timeframe" value="365"> Next Year <br>
 <input type="submit" name="Look up series">
 </form>
-<p id="result"></p>
-<p id="most-recent"></p>
+<p id="results"></p>
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 {% else %}
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
@@ -22,22 +21,21 @@ Publishing Date Timeframe: <br>
 
  <script>
 function showResults(result){
-    let title = result.most_recent[0];
-    let published = result.most_recent[1];
-    let results = result.results;
+    let mrPhrase = `Most recently released: ${result.most_recent[0]}, publication date: ${result.most_recent[1]}`;
     let rPhrase;
-    if (results[0] === null) {
-        rPhrase = "No books found in timeframe.";
+    if (result.results[0] === null) {
+    rPhrase = "No books found in timeframe.";
     } else {
-        rPhrase = `Results: ${results[0]}, publication date: ${results[1]}.`;
+    rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
     }
-    let mrPhrase = `Most recently released: ${title}, publication date: ${published}.`;
-    $("#result").text(rPhrase);
-    $("#most-recent").text(mrPhrase);
+
+    let htmlStr = `${rPhrase} <br> ${mrPhrase}`;
+    $("#results").html(htmlStr);
 }
 
 function searchSeries(evt){
     evt.preventDefault();
+    $("#results").text("Searching for info...");
     let date = new Date();
     date = date.toDateString();
     let td = $("input[name=timeframe]:checked").val();

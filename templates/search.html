@@ -8,8 +8,8 @@
 
 <form id="search" action="/search" method="POST">
     <input hidden type="text" name="date" id="date">
-    Author: <input type="text" name="author"><br>
-    Series: <select name="series"> 
+    Author: <input type="text" name="author" id="author"><br>
+    Series: <select name="series" id="series"> 
     <option selected value> -- select an option -- </option>{% for s in series %}
     <option value="{{s.series_name}}"> {{ s.series_name }} </option>
     {% endfor %}
@@ -20,29 +20,40 @@
     <input type="radio" name="timeframe" value="365"> Next Year <br>
     <input type="Submit" value="Search">
 </form>
-<div id="results"> </div>
-{% if "search_history" in session %}
-{{ session.search_history }}
-{% endif %}
+<p id="results"> </p>
 
 <script>
-$("#search").on("submit", function(){
-    let date = new Date();
-    $("#date").val(date.toDateString());
+
+$("#search").on("submit", function(evt){
+    evt.preventDefault();
+    let author = $("#author").val();
+    let series = $("#series").val();
+
+    if (author && series) {
+        $("#results").text("Please enter only an author or a series, not both.");
+    } else if (!author && !series) {
+        $("#results").text("Please enter a value to submit!");
+    } else{
+        $("#results").text("Searching for info...");
+        let date = new Date();
+        date = date.toDateString();
+        let td = $("input[name=timeframe]:checked").val();
+        let formInputs = {"date": date, "author": author, "series": series, "timeframe" : td};
+        $.post("/search.json", formInputs, function(result){
+            let mrPhrase = `Most recently released: ${result.most_recent[0]}, publication date: ${result.most_recent[1]}`;
+            let rPhrase;
+            if (result.results[0] === null) {
+            rPhrase = "No books found in timeframe.";
+            } else {
+            rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
+            }
+
+            let htmlStr = `${rPhrase} <br> ${mrPhrase}`;
+            $("#results").html(htmlStr);
+        });
+    }
+
 });
 
-// $("#search").on("submit", function(evt){
-//     evt.preventDefault();
-//     let author;
-//     let series;
-//     // need to check to see what javascript gets from an empty field
-
-// });
-// Things I need to put in here:
-// Check to see if at least one field is filled out
-// If not, complain (if zero or two)
-// if author is filled out, do an author query
-// else do a series query
-// and shove the results into the div land
 </script>
 {% endblock %}
