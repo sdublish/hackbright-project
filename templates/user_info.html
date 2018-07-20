@@ -10,11 +10,11 @@
 <p> Age: {{ user.age }} </p>
 <p> Zipcode: {{ user.zipcode }} </p>
 <p> Favorite authors: <ul>{% for fav_author in user.fav_authors %} 
-    <li> {{ fav_author.author.author_name }} </li>
+    <li> <a href="/author/{{fav_author.author.author_id}}">{{ fav_author.author.author_name }}</a> </li>
 {% endfor %}
 </ul></p>
 <p> Favorite series: <ul>{% for fs in user.fav_series %} 
-    <li> {{ fs.series.series_name }} </li>
+    <li><a href="/series/{{fs.series.series_id}}"> {{ fs.series.series_name }}</a> </li>
 {% endfor %}
 </ul></p>
 <h3> Search History </h3>

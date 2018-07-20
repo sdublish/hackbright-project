@@ -86,8 +86,6 @@ def search_json():
                             result = (work["volumeInfo"]["title"], date2)
                             break
 
-            print(most_recent)
-            print(result)
             if "search_history" in session:
                 search = (date, tf_str, author, most_recent, result)
                 # this looks redundant, but if I try to modify the session value directly
@@ -521,6 +519,7 @@ def show_author_info(author_id):
 
     if author.goodreads_id:
         series = get_series_list_by_author(author.goodreads_id)
+        # maybe check to see if id is in database? Not sure HOW though.
 
     return render_template("author_info.html", author=author, info=author_info, series=series)
 
@@ -560,6 +559,9 @@ def show_series_info(series_id):
 
                     author = work_info["author"]
                     series_info["works"].append((title, author, pub_date))
+
+            if (len(series_info["works"]) != int(series_info["length"])):
+                series_info["length"] = str(len(series_info["works"]))
 
     return render_template("series_info.html", series=series, info=series_info)
 

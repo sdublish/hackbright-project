@@ -4,9 +4,13 @@
 <h1> Search Results for {{ query }} </h1>
 <form action="/book-series" method="POST">
 {% for book in books %}
-<input type="radio" name="book" value="{{ book[2] }} || {{ book [0] }}"> {{ book[0] }} by {{ book[1] }} <br>
+<div class="form-check">
+<input type="radio" class="form-check-input" name="book" value="{{ book[2] }} || {{ book [0] }}" id="{{ book[2] }}"> 
+<label class="form-check-label" for="{{ book[2] }}">{{ book[0] }} by {{ book[1] }}</label>
+</div>
 {% endfor %}
-<input type="submit" name="Find series for this book">
+<button type="submit" class="btn"> Search by Title </button>
 </form>
+<br> <br> 
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 {% endblock %}

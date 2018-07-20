@@ -12,6 +12,7 @@
 <p> No description provided. </p>
 {% endif %}
 <p> Number of works: {{ info.length }} </p>
+<!-- Add a check to see if there are any works to show off -->
 <p> Works in series: </p>
 <ul> {% for work in info.works %}
     <li> {{ work[0] }} by {{ work[1] }}, published {{ work[2] }} </li>

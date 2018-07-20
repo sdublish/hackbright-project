@@ -4,14 +4,23 @@
 <h1> Advanced Search </h1>
 <h3>Find a series by author:</h3>
 <form action="/by-author" method="POST">
-    Author Name: <input type="text" name="author" required>
-    <input type="submit">
+    <div class="form-group">
+    <label for="author"> Author Name </label>
+    <input type="text" name="author" class="form-control" id="author" required>
+    </div>
+
+    <button type="submit" class="btn"> Search by Author </button>
 </form>
+<br> <br> <br>
 
 <h3>Find a series by book:</h3>
 <form action="/by-book" method="POST">
-    Book Title: <input type="text" name="title" required>
-    <input type="submit">
+    <div class="form-group">
+         <label for="title"> Book Title </label>
+     <input type="text" name="title" class="form-control" id="title"required>
+   
+    </div>
+    <button type="submit" class="btn"> Search by Title </button>
 </form>
 
 {% endblock %}
