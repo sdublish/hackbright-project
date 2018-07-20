@@ -33,7 +33,8 @@
 {% endif %}
 <br> <br>
 <div id="results"> </div>
-
+{% endblock %}
+{% block script %}
 {% if "user_id" in session %}
 <script>
 // Apparently jinja in javascript is bad

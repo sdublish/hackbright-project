@@ -6,22 +6,35 @@
     and modify the form to show the proper fields depending on user input -->
 <!-- Use the buttons or something, things which only allow one option -->
 
-<form id="search" action="/search" method="POST">
-    <input hidden type="text" name="date" id="date">
-    Author: <input type="text" name="author" id="author"><br>
-    Series: <select name="series" id="series"> 
+<form id="search" class="form-group">
+    <label for="author">Author</label>
+    <input class="form-control" type="text" id="author"><br>
+    <label for="series">Series</label>
+    <select class="form-control" id="series"> 
     <option selected value> -- select an option -- </option>{% for s in series %}
     <option value="{{s.series_name}}"> {{ s.series_name }} </option>
     {% endfor %}
 </select><br>
-    Publishing Date Timeframe: <br>
-    <input type="radio" name="timeframe" checked value="0"> Default <br>
-    <input type="radio" name="timeframe" value="183"> Next Six Months <br>
-    <input type="radio" name="timeframe" value="365"> Next Year <br>
-    <input type="Submit" value="Search">
+    Publishing Date Timeframe: 
+{% for tf, name in tfs.items()|sort %}
+{% if tf == 0 %}
+    <div class="form-check">
+    <input class="form-check-input" type="radio" name="timeframe" checked id="{{ tf }}" value="{{ tf }}">
+    <label class="form-check-label" for="{{ tf }}"> {{ name }} </label>
+</div>
+{% else %}
+<div class="form-check">
+    <input class="form-check-input" type="radio" name="timeframe" id="{{ tf }}" value="{{ tf }}">
+    <label class="form-check-label" for="{{ tf }}"> {{ name }} </label>
+</div>
+{% endif %}
+{% endfor %}
+    <button type="submit" class="btn">Submit</button>
 </form>
 <p id="results"> </p>
+{% endblock %}
 
+{% block script %}
 <script>
 
 $("#search").on("submit", function(evt){

@@ -18,14 +18,18 @@
 {% endfor %}
 </ul></p>
 <h3> Search History </h3>
-<table>
+<table class="table table-striped table-bordered">
+    <caption> Search history </caption>
+    <thead>
     <tr>
-        <th> Date Searched </th>
-        <th> Timeframe </th>
-        <th> Search Term </th>
-        <th> Most Recently Released </th>
-        <th> Search Result </th>
+        <th scope="col"> Date Searched </th>
+        <th scope="col"> Timeframe </th>
+        <th scope="col"> Search Term </th>
+        <th scope="col"> Most Recently Released </th>
+        <th scope="col"> Search Result </th>
     </tr>
+</thead>
+<tbody>
     {% for item in session.get("search_history") %}
     <tr>
         <td> {{ item[0] }} </td>
@@ -40,6 +44,7 @@
         {% endif %}
     </tr>
     {% endfor %}
+</tbody>
 
     </table>
 

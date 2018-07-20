@@ -3,22 +3,36 @@
 {% block content %}
 <h1> {{ title }} </h1>
 {% if series|length > 0 %}
-<form action="/series-result" id="series-search" method="POST">
+<form id="series-search" class="form-group">
 {% for id, name in series.items() %}
-<input type="radio" value= "{{ id }}" name="series"> <span id="{{ id }}">{{ name }} </span><br>
-{% endfor %}<br>
-Publishing Date Timeframe: <br>
-    <input type="radio" name="timeframe" checked value="0"> Default <br>
-    <input type="radio" name="timeframe" value="183"> Next Six Months <br>
-    <input type="radio" name="timeframe" value="365"> Next Year <br>
-<input type="submit" name="Look up series">
+<div class="form-check">
+<input class="form-check-input" type="radio" value= "{{ id }}" name="series" id="{{ id }}"> 
+<label class="form-check-label" for="{{ id }}"> {{ name }} </label>
+</div>
+{% endfor %}
+<br>     Publishing Date Timeframe: 
+{% for tf, name in tfs.items()|sort %}
+{% if tf == 0 %}
+    <div class="form-check">
+    <input class="form-check-input" type="radio" name="timeframe" checked id="{{ tf }}" value="{{ tf }}">
+    <label class="form-check-label" for="{{ tf }}"> {{ name }} </label>
+</div>
+{% else %}
+<div class="form-check">
+    <input class="form-check-input" type="radio" name="timeframe" id="{{ tf }}" value="{{ tf }}">
+    <label class="form-check-label" for="{{ tf }}"> {{ name }} </label>
+</div>
+{% endif %}
+{% endfor %}
+<button type="submit" class="btn"> Look Up Series! </button>
 </form>
 <p id="results"></p>
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 {% else %}
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
 {% endif %}
-
+{% endblock %}
+{% block script %}
  <script>
 function showResults(result){
     let mrPhrase = `Most recently released: ${result.most_recent[0]}, publication date: ${result.most_recent[1]}`;
@@ -40,7 +54,7 @@ function searchSeries(evt){
     date = date.toDateString();
     let td = $("input[name=timeframe]:checked").val();
     let seriesID = $('input[name=series]:checked').val();
-    let IDAsString = `#${seriesID}`;
+    let IDAsString = `label[for=${seriesID}]`;
     let seriesName = $(IDAsString).text();
     let formInputs = {'id': seriesID, 'name': seriesName, 'date': date, 'timeframe': td};
     $.post("/series-result.json", formInputs, showResults);

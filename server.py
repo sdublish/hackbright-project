@@ -20,6 +20,9 @@ app = Flask(__name__)
 app.jinja_env.undefined = StrictUndefined
 
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
+# dictionary in format of (days, what option is called)
+timeframes = {183: "Next Six Months", 365: "Next Year", 730: "In Two Years",
+              0: "Default"}
 
 
 @app.route("/")
@@ -30,7 +33,7 @@ def show_homepage():
 @app.route("/search")
 def show_search():
     series = Series.query.all()
-    return render_template("search.html", series=series)
+    return render_template("search.html", series=series, tfs=timeframes)
 
 
 @app.route("/search.json", methods=["POST"])
@@ -38,15 +41,7 @@ def search_json():
     author = request.form.get("author")
     series_name = request.form.get("series")
     timeframe = int(request.form.get("timeframe"))
-
-    if timeframe == 365:
-        tf_str = "Next Year"
-
-    elif timeframe == 183:
-        tf_str = "Next Six Months"
-
-    else:
-        tf_str = "Default"
+    tf_str = timeframes[timeframe]
 
     date = request.form.get("date")
     date_str = " ".join(date.split()[1:])
@@ -82,7 +77,7 @@ def search_json():
                 else:
                     for work in results["items"][1:]:
                         date2 = get_pub_date_with_book_id(work["id"])
-                        pdate2 = convert_string_to_datetime(date)
+                        pdate2 = convert_string_to_datetime(date2)
 
                         if pdate2 < py_date:
                             result = (None, None)
@@ -91,15 +86,15 @@ def search_json():
                             result = (work["volumeInfo"]["title"], date2)
                             break
 
+            print(most_recent)
+            print(result)
             if "search_history" in session:
-                search = (date, tf_str, series_name, most_recent, result)
+                search = (date, tf_str, author, most_recent, result)
                 # this looks redundant, but if I try to modify the session value directly
                 # it doesn't update, so it has to be like this
                 s_history = session["search_history"]
                 s_history.append(search)
                 session["search_history"] = s_history
-
-            print(session["search_history"])
 
             return jsonify({"results": result, "most_recent": most_recent})
 
@@ -137,7 +132,7 @@ def search_by_author():
                 series_info = get_series_list_by_author(author.goodreads_id)
                 if series_info is not None:  # if we get results
                     # also I probably should add search results to search history as well
-                    return render_template("series_results.html", series=series_info, title=title)
+                    return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
                     flash("An error occured. Please try again")
@@ -153,7 +148,7 @@ def search_by_author():
                 series_info = get_series_list_by_author(actual_id)
 
                 if series_info is not None:  # if everything worked
-                    return render_template("series_results.html", series=series_info, title=title)
+                    return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # error occured/returned None
                     flash("An error occured. Please try again")
@@ -176,7 +171,7 @@ def search_by_author():
                 if series_info is not None:  # if we get results
                     flash("Showing results for {} instead of {}".format(possible_author.author_name, author_name))
                     title = "Series by {}".format(possible_author.author_name)
-                    return render_template("series_results.html", series=series_info, title=title)
+                    return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
                     flash("An error occured. Please try again")
@@ -190,7 +185,7 @@ def search_by_author():
                     if author_name != actual_info[1]:
                         flash("Showing results for {} instead of {}".format(actual_info[1], author_name))
                     title = "Series by {}".format(actual_info[1])
-                    return render_template("series_results.html", series=series_info, title=title)
+                    return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
                     flash("An error occured. Please try again")
@@ -199,40 +194,6 @@ def search_by_author():
         else:  # if no author id is returned
             flash("Could not find an author with that name. Please try again.")
             return redirect("/adv-search")
-
-
-@app.route("/series-result.json", methods=["POST"])
-def show_series_results():
-    series_id = request.form.get("id")
-    series_name = request.form.get("name")
-
-    date = request.form.get("date")
-    date_str = " ".join(date.split()[1:])
-    py_date = datetime.strptime(date_str, "%b %d %Y")
-
-    timeframe = int(request.form.get("timeframe"))
-    td = timedelta(days=timeframe)
-
-    if series_id and series_name:  # if there is a series id and name
-        results = get_last_book_of_series(series_name, series_id, py_date, td)
-
-        if "search_history" in session:
-            search = (date, tf_str, series_name, results["most_recent"], results["results"])
-            # this looks redundant, but if I try to modify the session value directly
-            # it doesn't update, so it has to be like this
-            s_history = session["search_history"]
-            s_history.append(search)
-            session["search_history"] = s_history
-
-        if not Series.query.filter_by(goodreads_id=series_id).first():  # if series is not in database
-            db.session.add(Series(goodreads_id=series_id, series_name=series_name))
-            db.session.commit()
-
-        return jsonify(results)
-
-    else:  # Need to change what I want to show as an error here
-        flash("An error occured. Please try again.")
-        return redirect("/adv-search")
 
 
 @app.route("/by-book", methods=["POST"])
@@ -285,7 +246,7 @@ def series_by_books():
                 all_series = list(tree.find("series_works"))
                 series = sort_series(all_series)
 
-            return render_template("series_results.html", series=series, title=title)
+            return render_template("series_results.html", series=series, title=title, tfs=timeframes)
 
         else:  # something went wrong with the request
             flash("Something went wrong. Please try again.")
@@ -293,6 +254,41 @@ def series_by_books():
 
     else:  # for some reason we don't have a book id
         flash("Something went wrong.")
+        return redirect("/adv-search")
+
+
+@app.route("/series-result.json", methods=["POST"])
+def show_series_results():
+    series_id = request.form.get("id")
+    series_name = request.form.get("name")
+
+    date = request.form.get("date")
+    date_str = " ".join(date.split()[1:])
+    py_date = datetime.strptime(date_str, "%b %d %Y")
+
+    timeframe = int(request.form.get("timeframe"))
+    tf_str = timeframes[timeframe]
+    td = timedelta(days=timeframe)
+
+    if series_id and series_name:  # if there is a series id and name
+        results = get_last_book_of_series(series_name, series_id, py_date, td)
+
+        if "search_history" in session:
+            search = (date, tf_str, series_name, results["most_recent"], results["results"])
+            # this looks redundant, but if I try to modify the session value directly
+            # it doesn't update, so it has to be like this
+            s_history = session["search_history"]
+            s_history.append(search)
+            session["search_history"] = s_history
+
+        if not Series.query.filter_by(goodreads_id=series_id).first():  # if series is not in database
+            db.session.add(Series(goodreads_id=series_id, series_name=series_name))
+            db.session.commit()
+
+        return jsonify(results)
+
+    else:  # Need to change what I want to show as an error here
+        flash("An error occured. Please try again.")
         return redirect("/adv-search")
 
 
