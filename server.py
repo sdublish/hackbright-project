@@ -569,6 +569,6 @@ def show_series_info(series_id):
 if __name__ == "__main__":
     app.debug = True
     app.jinja_env.auto_reload = app.debug
-    connect_to_db(app)
+    connect_to_db(app, "postgresql:///project")
     DebugToolbarExtension(app)
     app.run(host="0.0.0.0")

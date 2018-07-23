@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, main
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
@@ -176,4 +176,4 @@ class FlaskTests(TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    main()
