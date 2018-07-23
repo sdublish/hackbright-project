@@ -164,18 +164,12 @@ def get_info_for_work(work):
     p_month = work.find("work").find("original_publication_month").text
     p_date = work.find("work").find("original_publication_day").text
 
-    if p_month in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-        p_month = "0" + p_month
-
-    if p_date in ["1", "2", "3", "4", "5", "6", "7", "8", "9"]:
-        p_date = "0" + p_date
-
     # if statements can definitely be cleaned up
     if p_year and p_month and p_date:
-        pub = "{}-{}-{}".format(p_year, p_month, p_date)
+        pub = "{}-{}-{}".format(p_year, p_month.zfill(2), p_date.zfill(2))
 
     elif p_year and p_month:
-        pub = "{}-{}".format(p_year, p_month)
+        pub = "{}-{}".format(p_year, p_month.zfill(2))
 
     elif p_year:
         pub = p_year
