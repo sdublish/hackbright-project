@@ -87,7 +87,7 @@ class Fav_Series(db.Model):
 ######### HELPER FUNCTION ###################################################################
 
 
-def connect_to_db(app, url):
+def connect_to_db(app, url="postgresql:///project"):
     """ Connects to database"""
     app.config["SQLALCHEMY_DATABASE_URI"] = url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -100,5 +100,5 @@ if __name__ == "__main__":
     # you in a state of being able to work with the database directly.
 
     from server import app
-    connect_to_db(app, "postgresql:///project")
+    connect_to_db(app)
     print("Connected to DB.")

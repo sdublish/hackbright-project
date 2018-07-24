@@ -69,6 +69,7 @@ def get_series_list_by_author(author_id):
 
     if response.status_code == 200:
         tree = ET.fromstring(response.content)
+
         if tree.find("series_works"):
             all_series = list(tree.find("series_works"))
             return sort_series(all_series)
