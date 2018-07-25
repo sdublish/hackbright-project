@@ -4,12 +4,13 @@ from unittest import TestCase, main
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from unittest.mock import patch
+from flask import session
 
 from server import app
-from model import connect_to_db
+from model import connect_to_db, db, example_data
 from goodreads_util import (sort_series, get_info_for_work, get_author_goodreads_info,
                             get_series_list_by_author)
-from google_util import get_pub_date_with_book_id
+from google_util import get_pub_date_with_book_id, get_pub_date_with_title
 from server_util import convert_string_to_datetime, strip_tags
 
 
@@ -36,10 +37,17 @@ class ServerUtilTests(TestCase):
 class GoogleUtilTests(TestCase):
     """Testing Google Books Utility Functions"""
     def test_pub_date_with_book_id(self):
+        """Tests to see if function returns date when given a dictionary from API"""
         with patch('requests.get') as mock_request:
             mock_request.return_value.json.return_value = {"volumeInfo": {"publishedDate": "2016-07-07"}}
             self.assertEqual("2016-07-07", get_pub_date_with_book_id("1"))
-    # how would I test the get pub date with title, since that basically just gets the id number and goes from there?
+
+    def test_pub_date_with_title(self):
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.json.return_value = {"items": [{"id": "1"}]}
+            with patch("google_util.get_pub_date_with_book_id") as mock_result:
+                mock_result.return_value = "2016-08-03"
+                self.assertEqual("2016-08-03", get_pub_date_with_title("Title"))
 
 
 class GoodreadsUtilTests(TestCase):
@@ -183,7 +191,12 @@ class GoodreadsUtilTests(TestCase):
             mock_request.return_value.status_code = 400
             self.assertEqual((None, None), get_author_goodreads_info("Doesn't Exist"))
 
-    # check to see how author_goodreads_info handles stuff when status = 200 but no author info is available?
+    def test_author_goodreads_info_no_info(self):
+        """Tests to see if function returns (None, None) if no author information is provided"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = "<Goodreads></Goodreads>"
+            self.assertEqual((None, None), get_author_goodreads_info("John Doe"))
 
     def test_author_goodreads_info_exists(self):
         """ Checks to see if function returns proper info when status code is 200"""
@@ -193,15 +206,26 @@ class GoodreadsUtilTests(TestCase):
             self.assertEqual(("40", "John Doe"), get_author_goodreads_info("John Doe"))
 
     def test_get_series_list_by_author_error(self):
+        """ Tests to see if function returns None when an error occured"""
         with patch("requests.get") as mock_request:
             mock_request.return_value.status_code = 400
             self.assertIsNone(get_series_list_by_author(1))
 
     def test_get_series_list_by_author_no_series(self):
+        """Tests to see if function returns an empty dictionary if no series are present"""
         with patch("requests.get") as mock_request:
             mock_request.return_value.status_code = 200
             mock_request.return_value.content = "<series> </series>"
             self.assertEqual({}, get_series_list_by_author(1))
+
+    def test_get_series_list_by_author_with_series(self):
+        """ Tests to see if get_series_list_by_author returns series when they are present"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = "<response><series_works><book></book></series_works></response>"
+            with patch("goodreads_util.sort_series") as mock_sort:
+                mock_sort.return_value = {"1": "a series"}
+                self.assertEqual(get_series_list_by_author("1"), {"1": "a series"})
 
 
 class FlaskNotLoggedInTests(TestCase):
@@ -211,11 +235,6 @@ class FlaskNotLoggedInTests(TestCase):
         """Sets up app for a not-logged in user"""
         self.client = app.test_client()
         app.config["TESTING"] = True
-
-        connect_to_db(app, "postgresql:///testdb")
-        # then create tables and add sample data
-
-    # define teardown function
 
     def test_homepage(self):
         """ Tests to see if homepage renders properly"""
@@ -229,25 +248,232 @@ class FlaskNotLoggedInTests(TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"<h1> Login </h1>", result.data)
 
+    def test_logout(self):
+        """Tests to see if user is redirected correctly if attempting to logout when not logged in"""
+        result = self.client.get("/logout", follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Not logged in", result.data)
+        self.assertIn(b"<h1> Project Homepage </h1>", result.data)
+
     def test_signup_page(self):
         """ Tests to see if signup page renders properly"""
         result = self.client.get("/sign-up")
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"<h1> Sign Up </h1>", result.data)
 
+    def test_adv_search_page(self):
+        """ Tests to see if advanced search page renders properly"""
+        result = self.client.get("/adv-search")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
 
-class FlaskLoggedInTests(TestCase):
-    """ Integration Tests when users are logged in"""
-    # check to see if logged-out button is there?
+    def test_book_search_error(self):
+        """ Tests to see if, if API does not send a proper request, searching by book goes back to advanced search page"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 400
+            result = self.client.post("/by-book", data={"title": "Failure"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Something went wrong", result.data)
+        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
+
+    def test_book_search_shows_results(self):
+        """ Tests to see if by-book shows the series returned in API response """
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = """
+            <Response> <search> <results>
+            <work><id>300</id>
+            <best_book>
+            <title>An Answer</title>
+            <author><name>Jane Doe</name></author>
+            </best_book>
+            </work>
+            </results></search></Response>
+            """
+            result = self.client.post("/by-book", data={"title": "An Answer"})
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Search Results for An Answer", result.data)
+        self.assertIn(b"An Answer by Jane Doe", result.data)
+
+    def test_book_series_no_id(self):
+        """ Tests to see if book-series redirects properly if no book_id is provided"""
+        result = self.client.post("/book-series", data={"book": "|| Failure"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Something went wrong", result.data)
+        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
+
+    def test_book_series_error(self):
+        """Tests to see if book-series redirects properly if error occurs in API call"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 400
+            result = self.client.post("/book-series", data={"book": "1|| Failure"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Something went wrong", result.data)
+        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
+
+    def test_book_series_no_series(self):
+        """ Tests to see if book-series shows all series related to book if API call is successful"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = "<response> </response>"
+            result = self.client.post("/book-series", data={"book": "1|| Seriesless"})
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Series That Seriesless", result.data)
+        self.assertIn(b"No series were found", result.data)
+
+
+class FlaskNotLoggedInDatabaseTests(TestCase):
+    """ Integration tests for when user is not logged in and have database interactions"""
+
     def setUp(self):
-        """Sets up site for logged-in user"""
+        """Sets up app for a not-logged in user"""
         self.client = app.test_client()
         app.config["TESTING"] = True
 
         connect_to_db(app, "postgresql:///testdb")
-        # then create tables and add sample data
 
-    # define teardown function
+        db.create_all()
+        example_data()
+
+    def tearDown(self):
+        """ Tear down to ensure database is the same for each test"""
+        db.session.remove()
+        db.drop_all()
+        db.engine.dispose()
+
+    def test_signup_user_exists(self):
+        """ Tests to see if user is redirected properly if trying to sign up with email which is already in database"""
+        result = self.client.post("/sign-up", data={"email": "bob@bob.com"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Email already exists", result.data)
+        self.assertIn(b"<h1> Sign Up </h1>", result.data)
+
+    def test_signup_error(self):
+        """Tests to see if user is redirected properly if they do not sign up properly"""
+        result = self.client.post("/sign-up", data={"email": "hello@world.com", "password": "yay"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Please input values", result.data)
+        self.assertIn(b"<h1> Sign Up </h1>", result.data)
+
+    def test_signup_success(self):
+        """ Tests to see if user can sign up for an account"""
+        with self.client as c:
+            result = c.post("/sign-up", data={"email": "test@test.com",
+                                              "fname": "Tessa", "lname": "Test",
+                                              "password": "test"}, follow_redirects=True)
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(session["user_id"], 3)
+            self.assertEqual(session["search_history"], [])
+            self.assertIn(b"New user", result.data)
+            self.assertIn(b"You are now logged in", result.data)
+            self.assertIn(b"Tessa Test", result.data)
+
+    def test_user_login_success(self):
+        """Tests to see if a user is redirected to the proper page if they enter the right login info"""
+        with self.client as c:
+            result = c.post("/login", data={"email": "bob@bob.com", "password": "bob"}, follow_redirects=True)
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(session["user_id"], 1)
+            self.assertEqual(session["search_history"], [])
+            self.assertIn(b"Successfully logged in!", result.data)
+            self.assertIn(b"Bob Bob", result.data)
+
+    def test_user_login_failure(self):
+        """Tests to see if user is redirected properly if they do not submit proper login info"""
+        result = self.client.post("/login", data={"email": "bob@bob.com", "password": "meep"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Incorrect username/password", result.data)
+        self.assertIn(b"<h1> Login </h1>", result.data)
+
+    def test_search_page(self):
+        """Tests to see if search page renders properly"""
+        result = self.client.get("/search")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"<h1> Search </h1>", result.data)
+        self.assertIn(b"Bob&#39;s Adventure", result.data)
+
+    def test_user_info_page(self):
+        """Tests to see if user info page renders properly"""
+        result = self.client.get("/user/1")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Bob Bob", result.data)
+        self.assertIn(b"Bob&#39;s First Adventure", result.data)
+        self.assertNotIn(b"<h3> Update Profile </h3>", result.data)
+
+    def test_author_info_page_goodreads_id_series(self):
+        """ Tests to see if author page properly displays if goodreads_id is present and they are connected to series"""
+        with patch("wikipedia.summary") as mock_summary:
+            mock_summary.return_value = "This author is cool"
+            with patch("server.get_series_list_by_author") as mock_series:
+                mock_series.return_value = {"1": "The Great Bob Adventure"}
+                result = self.client.get("/author/1")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"<h1> Bob Bob </h1>", result.data)
+        self.assertIn(b"This author is cool", result.data)
+        self.assertIn(b"The Great Bob Adventure", result.data)
+        self.assertNotIn(b"Favorite this author", result.data)
+
+    def test_author_search_no_goodreads(self):
+        """ Tests to see if user is redirected properly if searching by an author not in goodreads"""
+        with patch("server.get_author_goodreads_info") as mock_response:
+            mock_response.return_value = (None, None)
+            result = self.client.post("/by-author", data={"author": "Nobody"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Could not find", result.data)
+        self.assertIn(b"Advanced Search", result.data)
+
+
+class FlaskLoggedInTests(TestCase):
+    """ Integration tests when users are logged in"""
+    def setUp(self):
+        """Sets up site for logged-in user"""
+        self.client = app.test_client()
+        app.config["TESTING"] = True
+        app.config["SECRET_KEY"] = "key"
+
+        with self.client as c:
+            with c.session_transaction() as sess:
+                sess["user_id"] = 1
+                sess["search_history"] = []
+                # can add things to search history if needed
+
+        connect_to_db(app, "postgresql:///testdb")
+        db.create_all()
+        example_data()
+
+    def tearDown(self):
+        """ Tear down to ensure database is the same for each test"""
+        db.session.remove()
+        db.drop_all()
+        db.engine.dispose()
+
+    def test_user_logout(self):
+        """ Tests to make sure user logout works """
+        with self.client as c:
+            result = c.get("/logout", follow_redirects=True)
+            self.assertNotIn("user_id", session)
+            self.assertNotIn("search_history", session)
+            self.assertEqual(result.status_code, 200)
+            self.assertIn(b"Logged out", result.data)
+            self.assertIn(b"<h1> Project Homepage </h1>", result.data)
+
+    def test_own_user_info_page(self):
+        """Tests to see if, when logged in, you see more info on your user page"""
+        result = self.client.get("/user/1")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Bob Bob", result.data)
+        self.assertIn(b"/author/1", result.data)
+        self.assertIn(b"/series/1", result.data)
+        self.assertIn(b"<h3> Update Profile </h3>", result.data)
+        # should probably test to see if search results appear in here
+
+    def test_another_user_info_page(self):
+        """Tests to see if, when logged in, you cannot see certain things on other users' pages"""
+        result = self.client.get("/user/2")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Jane Debugger", result.data)
+        self.assertNotIn(b"/author/2", result.data)
+        self.assertNotIn(b"<h3> Update Profile </h3>", result.data)
 
 if __name__ == "__main__":
     main()

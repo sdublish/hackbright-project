@@ -5,6 +5,7 @@ import wikipedia
 
 from flask import Flask, session, request, render_template, redirect, flash, jsonify
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from google_util import get_pub_date_with_book_id, google_books_key, get_pub_date_with_title
 from server_util import strip_tags, convert_string_to_datetime
@@ -49,6 +50,7 @@ def search_json():
     td = timedelta(days=timeframe)
 
     if author:
+        # check to see if author is in database, add if it isn't?
         payload = {"q": "inauthor:" + author,
                    "langRestrict": "en",
                    "orderBy": "newest",
@@ -111,6 +113,8 @@ def search_json():
 
             return jsonify(results)
         # should consider if I want to handle cases when the id isn't in database
+        # ... do i really need this check if I'm assuming all series have a goodreads id?
+        # I might want to change my database model to make that explicit, and then change what the value is
 
 
 @app.route("/adv-search")
@@ -299,9 +303,9 @@ def show_login():
 def login():
     email = request.form.get("email")
     password = request.form.get("password")
-    user = User.query.filter_by(email=email, password=password).first()
+    user = User.query.filter_by(email=email).first()
 
-    if user:  # if the email and password match what's in the database
+    if user and check_password_hash(user.password, password):  # if the email and password match what's in the database
         session["user_id"] = user.user_id
         session["search_history"] = []
         flash("Successfully logged in!")
@@ -346,7 +350,7 @@ def signup():
         # not sure if this check is necessary... or constructed properly
         if fname and lname and email and password:
             db.session.add(User(email=email, fname=fname, lname=lname,
-                                password=password))
+                                password=generate_password_hash(password)))
 
             db.session.commit()
 
@@ -519,7 +523,6 @@ def show_author_info(author_id):
 
     if author.goodreads_id:
         series = get_series_list_by_author(author.goodreads_id)
-        # maybe check to see if id is in database? Not sure HOW though.
 
     return render_template("author_info.html", author=author, info=author_info, series=series)
 

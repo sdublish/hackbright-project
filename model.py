@@ -1,6 +1,7 @@
 """ Models for project """
 
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash
 
 db = SQLAlchemy()
 
@@ -13,7 +14,7 @@ class User(db.Model):
     fname = db.Column(db.String(30), nullable=False)
     lname = db.Column(db.String(40), nullable=False)
     email = db.Column(db.String(64), nullable=False)
-    password = db.Column(db.String(20), nullable=False)
+    password = db.Column(db.String(150), nullable=False)
     age = db.Column(db.Integer, nullable=True)
     zipcode = db.Column(db.String(6), nullable=True)
     fav_book = db.Column(db.String(60), nullable=True)
@@ -84,7 +85,30 @@ class Fav_Series(db.Model):
         return "<Fav Series {}, series {} favorited by User {}>".format(self.fav_series_id, self.series_id, self.user_id)
 
 
-######### HELPER FUNCTION ###################################################################
+def example_data():
+    """ Data used for tests.py"""
+    # in case this is run twice, empty out existing data
+    Fav_Series.query.delete()
+    Fav_Author.query.delete()
+    User.query.delete()
+    Author.query.delete()
+    Series.query.delete()
+
+    u1 = User(fname="Bob", lname="Bob", email="bob@bob.com", password=generate_password_hash("bob"), fav_book="Bob's First Adventure")
+    u2 = User(fname="Jane", lname="Debugger", email="jdeb@gmail.com", password=generate_password_hash("bugs"))
+    a1 = Author(author_name="Bob Bob", goodreads_id="8388")
+    a2 = Author(author_name="The Cool Dude")
+    s1 = Series(series_name="Bob's Adventure", goodreads_id="2034")
+    db.session.add_all([u1, u2, a1, a2, s1])
+    db.session.commit()
+
+    fs1 = Fav_Series(user_id=1, series_id=1)
+    fa1 = Fav_Author(user_id=1, author_id=1)
+    fa2 = Fav_Author(user_id=2, author_id=2)
+    db.session.add_all([fs1, fa1, fa2])
+    db.session.commit()
+
+######### HELPER FUNCTIONS ###################################################################
 
 
 def connect_to_db(app, url="postgresql:///project"):

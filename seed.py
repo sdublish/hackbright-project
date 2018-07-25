@@ -3,16 +3,17 @@
 from model import User, Author, Fav_Author, Series, Fav_Series
 from model import connect_to_db, db
 from server import app
+from werkzeug.security import generate_password_hash
 
 
 def load_users():
     print("Loading users")
     """ Loads test users into database"""
 
-    db.session.add(User(fname="Bob", lname="Bob", email="bob@bob.com", password="bob"))
-    db.session.add(User(fname="Jane", lname="Debug", email="jdebug@gmail.com", password="bugs"))
-    db.session.add(User(fname="Sam", lname="Dragon", email="sdragon@hotmail.com", password="dragons"))
-    db.session.add(User(fname="Tessa", lname="Test", email="tester@test.com", password="test"))
+    db.session.add(User(fname="Bob", lname="Bob", email="bob@bob.com", password=generate_password_hash("bob")))
+    db.session.add(User(fname="Jane", lname="Debug", email="jdebug@gmail.com", password=generate_password_hash("bugs")))
+    db.session.add(User(fname="Sam", lname="Dragon", email="sdragon@hotmail.com", password=generate_password_hash("dragons")))
+    db.session.add(User(fname="Tessa", lname="Test", email="tester@test.com", password=generate_password_hash("test")))
 
     db.session.commit()
 
