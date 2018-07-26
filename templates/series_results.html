@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
 {% block title %} {{ title }} {% endblock %}
 {% block content %}
-<h1> {{ title }} </h1>
 {% if series|length > 0 %}
+<div class="row">
+    <div class="col-md-6">
+<h2> {{ title }} </h2>
 <form id="series-search" class="form-group">
 {% for id, name in series.items() %}
 <div class="form-check">
@@ -26,7 +28,21 @@
 {% endfor %}
 <button type="submit" class="btn"> Look Up Series! </button>
 </form>
-<p id="results"></p>
+</div>
+<div class="col-md-6">
+    <h2 class="text-center"> Results </h2>
+<p id="results" class="text-center"> No results yet!</p>
+<div class="row justify-content-center">
+
+<div class="col-lg-6 mx-auto" id="most-recent">
+</div>
+
+<div class="col-lg-6 mx-auto" id="act-results">
+</div>
+
+</div>
+</div>
+</div>
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 {% else %}
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
@@ -43,8 +59,10 @@ function showResults(result){
     rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
     }
 
-    let htmlStr = `${rPhrase} <br> ${mrPhrase}`;
-    $("#results").html(htmlStr);
+    $("#most-recent").html("<h4>Most Recent</h4><img height='200' src='" + result.most_recent[2] + "'> <p>" + mrPhrase + "</p>" )
+    $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
+
+    $("#results").text("");
 }
 
 function searchSeries(evt){

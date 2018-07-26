@@ -113,20 +113,21 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
         work_info = get_info_for_work(work)
         title = work_info["title"]
         published = work_info["published"]
+        cover = work_info["cover"]
 
         series_length = str(int(series_length) - 1)
 
     if published is None:
         published = get_pub_date_with_title(title)
 
-    most_recent = (title, published)
+    most_recent = (title, published, cover)
     result = most_recent
 
     pdate = convert_string_to_datetime(published)
 
     if timeframe and not (date <= pdate <= date + timeframe):
         if pdate < date:
-            result = (None, None)
+            result = (None, None, "http://sendmeglobal.net/images/404.png")
 
         else:
             while series_length >= "1":
@@ -134,6 +135,7 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
                 work_info = get_info_for_work(work)
                 title2 = work_info["title"]
                 published2 = work_info["published"]
+                cover = work_info["cover"]
 
                 if published2 is None:
                     published2 = get_pub_date_with_title(title)
@@ -141,17 +143,17 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
                 pdate2 = convert_string_to_datetime(published2)
 
                 if pdate2 < date:
-                    result = (None, None)
+                    result = (None, None, "http://sendmeglobal.net/images/404.png")
                     break
 
                 elif pdate <= pdate2 <= date + timeframe:
-                    result = (title2, pdate2)
+                    result = (title2, pdate2, cover)
                     break
 
                 series_length = str(int(series_length) - 1)
 
         if series_length == "0":
-            result = (None, None)
+            result = (None, None, "http://sendmeglobal.net/images/404.png")
 
     return {'most_recent': most_recent, 'results': result}
 
@@ -159,6 +161,7 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
 def get_info_for_work(work):
     title = work.find("work").find("best_book").find("title").text
     author = work.find("work").find("best_book").find("author").find("name").text
+    image = work.find("work").find("best_book").find("image_url").text.strip()
     pub = None
 
     p_year = work.find("work").find("original_publication_year").text
@@ -175,4 +178,4 @@ def get_info_for_work(work):
     elif p_year:
         pub = p_year
 
-    return {'title': title, 'published': pub, "author": author}
+    return {'title': title, 'published': pub, "author": author, "cover": image}

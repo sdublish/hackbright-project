@@ -18,6 +18,9 @@ class User(db.Model):
     age = db.Column(db.Integer, nullable=True)
     zipcode = db.Column(db.String(6), nullable=True)
     fav_book = db.Column(db.String(60), nullable=True)
+    # want to remove: age, zipcode (since not doing anything with events)
+    # want to add: are series private, are authors private
+    # maybe add something linking users or something... that would also be a privacy option
 
     fav_authors = db.relationship("Fav_Author")
     fav_series = db.relationship("Fav_Series")
@@ -62,7 +65,7 @@ class Series(db.Model):
 
     series_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     series_name = db.Column(db.String(200), nullable=False)
-    goodreads_id = db.Column(db.String(50), nullable=True)
+    goodreads_id = db.Column(db.String(50), nullable=False)
 
     favorited_by = db.relationship("Fav_Series")
 

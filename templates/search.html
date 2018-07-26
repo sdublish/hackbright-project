@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
 {% block title %} Search {% endblock %}
 {% block content %}
-<h1> Search </h1>
+<h1 class='text-center'> Search </h1>
 <!-- Thing which would be cool to do: have people tell me if they're searching by author or series 
     and modify the form to show the proper fields depending on user input -->
 <!-- Use the buttons or something, things which only allow one option -->
-
+<div class="row">
+    <div class="col-md-6">
 <form id="search" class="form-group">
     <label for="author">Author</label>
     <input class="form-control" type="text" id="author"><br>
@@ -31,8 +32,23 @@
 {% endfor %}
     <button type="submit" class="btn">Submit</button>
 </form>
-<p id="results"> </p>
+</div>
+<div class="col-md-6">
+    <h2 class="text-center"> Results </h2>
+<p id="results" class="text-center"> No results yet!</p>
+<div class="row justify-content-center">
+
+<div class="col-lg-6 mx-auto" id="most-recent">
+</div>
+
+<div class="col-lg-6 mx-auto" id="act-results">
+</div>
+
+</div>
+</div>
+</div>
 {% endblock %}
+
 
 {% block script %}
 <script>
@@ -61,8 +77,11 @@ $("#search").on("submit", function(evt){
             rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
             }
 
-            let htmlStr = `${rPhrase} <br> ${mrPhrase}`;
-            $("#results").html(htmlStr);
+            $("#most-recent").html("<h4>Most Recent</h4><img height='200' src='" + result.most_recent[2] + "'> <p>" + mrPhrase + "</p>" )
+            $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
+
+            $("#results").text("");
+
         });
     }
 

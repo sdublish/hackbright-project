@@ -64,28 +64,32 @@ def search_json():
             results = response.json()  # returns a very complicated dictionary
             # can clean up the code here
             next_book = results["items"][0]["volumeInfo"]
+            # set some default image here
+            next_book_cover = "https://d298d76i4rjz9u.cloudfront.net/assets/no-cover-art-found-c49d11316f42a2f9ba45f46cfe0335bbbc75d97c797ac185cdb397a6a7aad78c.jpg"
+            if results["items"][0]["volumeInfo"].get("imageLinks"):
+                next_book_cover = results["items"][0]["volumeInfo"]["imageLinks"]["thumbnail"]
 
             next_book_id = results["items"][0]["id"]
 
             published_date = get_pub_date_with_book_id(next_book_id)
             pdate = convert_string_to_datetime(published_date)
 
-            most_recent = (next_book["title"], published_date)
+            most_recent = (next_book["title"], published_date, next_book_cover)
             result = most_recent
 
             if td and not (py_date <= pdate <= py_date + td):
                 if pdate < py_date:
-                    result = (None, None)
+                    result = (None, None, "http://sendmeglobal.net/images/404.png")
                 else:
                     for work in results["items"][1:]:
                         date2 = get_pub_date_with_book_id(work["id"])
                         pdate2 = convert_string_to_datetime(date2)
 
                         if pdate2 < py_date:
-                            result = (None, None)
+                            result = (None, None, "http://sendmeglobal.net/images/404.png")
                             break
                         elif py_date <= pdate2 <= py_date + td:
-                            result = (work["volumeInfo"]["title"], date2)
+                            result = (work["volumeInfo"]["title"], date2, next_book_cover)
                             break
 
             if "search_history" in session:
@@ -100,21 +104,17 @@ def search_json():
 
     else:  # if series is being searched
         series = Series.query.filter_by(series_name=series_name).first()
-        if series.goodreads_id:
-            results = get_last_book_of_series(series_name, series.goodreads_id, py_date, td)
+        results = get_last_book_of_series(series_name, series.goodreads_id, py_date, td)
 
-            if "search_history" in session:
-                search = (date, tf_str, series_name, results["most_recent"], results["results"])
-                # this looks redundant, but if I try to modify the session value directly
-                # it doesn't update, so it has to be like this
-                s_history = session["search_history"]
-                s_history.append(search)
-                session["search_history"] = s_history
+        if "search_history" in session:
+            search = (date, tf_str, series_name, results["most_recent"], results["results"])
+            # this looks redundant, but if I try to modify the session value directly
+            # it doesn't update, so it has to be like this
+            s_history = session["search_history"]
+            s_history.append(search)
+            session["search_history"] = s_history
 
-            return jsonify(results)
-        # should consider if I want to handle cases when the id isn't in database
-        # ... do i really need this check if I'm assuming all series have a goodreads id?
-        # I might want to change my database model to make that explicit, and then change what the value is
+        return jsonify(results)
 
 
 @app.route("/adv-search")
@@ -372,10 +372,18 @@ def signup():
 @app.route("/user/<user_id>")
 def show_profile(user_id):
     user = User.query.get(user_id)
-    # you know, I could probably change this query so it only returns the series_id...
-    fav_series_id = [s.series_id for s in Fav_Series.query.filter_by(user_id=user_id).all()]
-    series = Series.query.filter(db.not_(Series.series_id.in_(fav_series_id))).all()
-    return render_template("user_info.html", user=user, series=series)
+    if user:
+        # you know, I could probably change this query so it only returns the series_id...
+        fav_series_id = [s.series_id for s in Fav_Series.query.filter_by(user_id=user_id).all()]
+        series = Series.query.filter(db.not_(Series.series_id.in_(fav_series_id))).all()
+        return render_template("user_info.html", user=user, series=series)
+
+    else:
+        flash("User does not exist")
+        if "user_id" in session:
+            return redirect("/user/{}".format(session["user_id"]))
+        else:
+            return redirect("/")
 
 
 @app.route("/update-profile", methods=["POST"])
@@ -469,7 +477,7 @@ def update_series():
     if unfav_series:
         for series_id in unfav_series:
             series = Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first()
-            if series:
+            if series:  # check to see if in database... useful just-in-case check, but not really needed
                 db.session.delete(series)
                 flash("Successfully removed {}".format(series.series.series_name))
 
@@ -509,30 +517,46 @@ def update_fav_series():
 @app.route("/author/<author_id>")
 def show_author_info(author_id):
     author = Author.query.get(author_id)
-    series = None
 
-    author_info = wikipedia.summary(author.author_name)
-    author_info.replace("\n", " ")
-    # handle any exceptions up there.
+    if author:
+        series = None
 
-    if author.goodreads_id is None:
-        possible_id = get_author_goodreads_info(author.author_name)[0]
-        if possible_id:
-            author.goodreads_id = possible_id
-            db.session.commit()
+        author_pg = wikipedia.page(author.author_name)
+        # handle any exceptions up here.
+        author_img = None
 
-    if author.goodreads_id:
-        series = get_series_list_by_author(author.goodreads_id)
+        for link in author_pg.images:
+            if author.author_name.split(" ")[-1] in link and link.endswith("jpg"):
+                author_img = link
 
-    return render_template("author_info.html", author=author, info=author_info, series=series)
+        author_info = author_pg.summary
+        author_info.replace("\n", " ")
+
+        if author.goodreads_id is None:
+            possible_id = get_author_goodreads_info(author.author_name)[0]
+            if possible_id:
+                author.goodreads_id = possible_id
+                db.session.commit()
+
+        if author.goodreads_id:
+            series = get_series_list_by_author(author.goodreads_id)
+
+        return render_template("author_info.html", author=author, info=author_info, url=author_img, series=series)
+
+    else:
+        flash("Author does not exist. Please try again!")
+        if "user_id" in session:
+            return redirect("/user/{}".format(session["user_id"]))
+        else:
+            return redirect("/")
 
 
 @app.route("/series/<series_id>")
 def show_series_info(series_id):
     series = Series.query.get(series_id)
-    series_info = {}
 
-    if series.goodreads_id:
+    if series:
+        series_info = {}
         payload = {"key": goodreads_key, "id": series.goodreads_id}
         response = requests.get("https://www.goodreads.com/series/show/", params=payload)
 
@@ -552,6 +576,7 @@ def show_series_info(series_id):
                     work_info = get_info_for_work(work)
                     title = work_info["title"]
                     pub_date = work_info["published"]
+                    cover = work_info["cover"]
 
                     if pub_date is None:
                         if 'untitled' in title.lower():
@@ -561,13 +586,22 @@ def show_series_info(series_id):
                             pub_date = get_pub_date_with_title(title)
 
                     author = work_info["author"]
-                    series_info["works"].append((title, author, pub_date))
+                    series_info["works"].append((title, author, pub_date, cover))
+                    # might consider adding some sort of sorting to make sure books show up in order
+                    # then again, they are in order on Goodreads so... idk
 
             if (len(series_info["works"]) != int(series_info["length"])):
                 series_info["length"] = str(len(series_info["works"]))
 
-    return render_template("series_info.html", series=series, info=series_info)
+        return render_template("series_info.html", series=series, info=series_info)
 
+    else:
+        flash("Series does not exist. Please try again!")
+
+        if "user_id" in session:
+            return redirect("/user/{}".format(session["user_id"]))
+        else:
+            return redirect("/")
 
 if __name__ == "__main__":
     app.debug = True
