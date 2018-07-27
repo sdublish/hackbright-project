@@ -2,6 +2,7 @@
 {% block title %} Search By Title Results {% endblock %}
 {% block content %}
 <h1> Search Results for {{ query }} </h1>
+{% if books %}
 <form action="/book-series" method="POST">
 {% for book in books %}
 <div class="form-check">
@@ -13,4 +14,7 @@
 </form>
 <br> <br> 
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
+{% else %}
+<p> No books were found. Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
+{% endif %}
 {% endblock %}

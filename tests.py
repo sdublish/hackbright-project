@@ -28,10 +28,15 @@ class ServerUtilTests(TestCase):
         """Tests to see if function converts string of format year-month-day properly"""
         self.assertEqual(convert_string_to_datetime("2016-02-02"), datetime(year=2016, month=2, day=2))
 
-    def test_strip_tags(self):
-        """Tests strip_tags functionality"""
+    def test_strip_tags_html(self):
+        """Tests strip_tags functionality when html is present"""
         test_str = "<b> Look at this <i>test</i> string! </b>"
         self.assertEqual(strip_tags(test_str).strip(), "Look at this test string!")
+
+    def test_strip_tags_no_html(self):
+        """Tests strip tags functionality when no html is present"""
+        test_str = "BOO"
+        self.assertEqual(strip_tags(test_str), test_str)
 
 
 class GoogleUtilTests(TestCase):
@@ -43,6 +48,7 @@ class GoogleUtilTests(TestCase):
             self.assertEqual("2016-07-07", get_pub_date_with_book_id("1"))
 
     def test_pub_date_with_title(self):
+        """ Tests to see if function returns date when given a title"""
         with patch("requests.get") as mock_request:
             mock_request.return_value.json.return_value = {"items": [{"id": "1"}]}
             with patch("google_util.get_pub_date_with_book_id") as mock_result:
@@ -70,7 +76,7 @@ class GoodreadsUtilTests(TestCase):
         self.assertEqual(sort_series(test_lst), {"400": "Test"})
 
     def test_sort_series_two_series(self):
-        """Tests to see if sort_series returns a dictionary with the right id when passed in two series"""
+        """Tests to see if sort_series returns a dictionary with the right id when passed in two series of different user_position values"""
         test_xml = """<series_works>
         <series_work> <user_position>1</user_position>
         <series>
@@ -280,6 +286,16 @@ class FlaskNotLoggedInTests(TestCase):
         self.assertIn(b"Something went wrong", result.data)
         self.assertIn(b"<h1> Advanced Search </h1>", result.data)
 
+    def test_book_search_no_books(self):
+        """Tests to see if by-book renders properly if no books are provided from search"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = "<response> <search><results></results></search></response>"
+            result = self.client.post("/by-book", data={"title": "Gibberish"})
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Search Results for Gibberish", result.data)
+        self.assertIn(b"No books were found", result.data)
+
     def test_book_search_shows_results(self):
         """ Tests to see if by-book shows the series returned in API response """
         with patch("requests.get") as mock_request:
@@ -325,18 +341,17 @@ class FlaskNotLoggedInTests(TestCase):
         self.assertIn(b"Series That Seriesless", result.data)
         self.assertIn(b"No series were found", result.data)
 
-    # currently not working... need to figure out why
-    # def test_book_series_series(self):
-    #     """ Tests to see if book-series show all series related to book if API call is successful and series are there"""
-    #     with patch("requests.get") as mock_request:
-    #         mock_request.return_value.status_code = 200
-    #         mock_request.return_value.content = "<response><series_works></series_works></response>"
-    #         with patch("server.sort_series") as mock_series:
-    #             mock_series.return_value = {"1": "A series"}
-    #             result = self.client.post("/book-series", data={"book": "1||Yay Series"})
-    #     self.assertEqual(result.status_code, 200)
-    #     self.assertIn(b"Series That Yay Series", result.data)
-    #     self.assertIn(b"A series", result.data)
+    def test_book_series_series(self):
+        """ Tests to see if book-series show all series related to book if API call is successful and series are there"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = "<response><series_works><series_work></series_work></series_works></response>"
+            with patch("server.sort_series") as mock_series:
+                mock_series.return_value = {"1": "A series"}
+                result = self.client.post("/book-series", data={"book": "1||Yay Series"})
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Series That Yay Series", result.data)
+        self.assertIn(b"A series", result.data)
 
 
 class FlaskNotLoggedInDatabaseTests(TestCase):
@@ -395,9 +410,16 @@ class FlaskNotLoggedInDatabaseTests(TestCase):
             self.assertIn(b"Successfully logged in!", result.data)
             self.assertIn(b"Bob Bob", result.data)
 
-    def test_user_login_failure(self):
-        """Tests to see if user is redirected properly if they do not submit proper login info"""
+    def test_user_login_password_failure(self):
+        """Tests to see if user is redirected properly if password does not match"""
         result = self.client.post("/login", data={"email": "bob@bob.com", "password": "meep"}, follow_redirects=True)
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Incorrect username/password", result.data)
+        self.assertIn(b"<h1> Login </h1>", result.data)
+
+    def test_user_login_email_failure(self):
+        """Tests to see if user is redirected properly is email is incorrect"""
+        result = self.client.post("/login", data={"email": "meep", "password": "meep"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Incorrect username/password", result.data)
         self.assertIn(b"<h1> Login </h1>", result.data)
@@ -434,11 +456,28 @@ class FlaskNotLoggedInDatabaseTests(TestCase):
                 result = self.client.get("/author/1")
 
         self.assertEqual(result.status_code, 200)
+        self.assertNotIn(b"Favorite this author", result.data)
         self.assertIn(b"Bob Bob", result.data)
         self.assertIn(b"This author is cool", result.data)
         self.assertIn(b"Bob.jpg", result.data)
         self.assertIn(b"The Great Bob Adventure", result.data)
+
+    # might want to test what happens if goodreads_id is not present (no series)
+
+    def test_author_info_page_no_series(self):
+        """Tests to see if author page properly displays info if author has no series associated with them"""
+        with patch("wikipedia.page") as mock_page:
+            mock_page.return_value.summary = "This author is cool"
+            mock_page.return_value.images = ["Bob.jpg"]
+            with patch("server.get_series_list_by_author") as mock_series:
+                mock_series.return_value = {}
+                result = self.client.get("/author/1")
+        self.assertEqual(result.status_code, 200)
         self.assertNotIn(b"Favorite this author", result.data)
+        self.assertIn(b"Bob Bob", result.data)
+        self.assertIn(b"This author is cool", result.data)
+        self.assertIn(b"Bob.jpg", result.data)
+        self.assertIn(b"No series", result.data)
 
     def test_author_info_page_dne(self):
         """Tests to see if user is redirected properly when attempting to access a page which does not exist"""
@@ -453,6 +492,16 @@ class FlaskNotLoggedInDatabaseTests(TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Series does not exist", result.data)
         self.assertIn(b"Homepage", result.data)
+
+    def test_series_info_API_failure(self):
+        """Tests to see if series info page renders properly if there is an API failure"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 400
+            result = self.client.get("/series/1")
+        self.assertEqual(result.status_code, 200)
+        self.assertNotIn(b"Favorite this series", result.data)
+        self.assertIn(b"Bob&#39;s Adventure", result.data)
+        self.assertIn(b"Could not get info", result.data)
 
     def test_author_search_no_goodreads(self):
         """ Tests to see if user is redirected properly if searching by an author not in goodreads"""
@@ -522,6 +571,39 @@ class FlaskLoggedInTests(TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Author does not exist", result.data)
         self.assertIn(b"Bob Bob", result.data)
+
+    def test_user_author_info_page_goodreads_id_series(self):
+        """ Tests to see if author page properly displays if goodreads_id is present and they are connected to series"""
+        with patch("wikipedia.page") as mock_page:
+            mock_page.return_value.summary = "This author is cool"
+            mock_page.return_value.images = ["Bob.jpg"]
+            with patch("server.get_series_list_by_author") as mock_series:
+                mock_series.return_value = {"1": "The Great Bob Adventure"}
+                result = self.client.get("/author/1")
+
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Favorite this author", result.data)
+        self.assertIn(b"Bob Bob", result.data)
+        self.assertIn(b"This author is cool", result.data)
+        self.assertIn(b"Bob.jpg", result.data)
+        self.assertIn(b"The Great Bob Adventure", result.data)
+
+    # might want to test what happens if goodreads_id is not present (no series)
+
+    def test_user_author_info_page_no_series(self):
+        """Tests to see if author page properly displays info if author has no series associated with them"""
+        with patch("wikipedia.page") as mock_page:
+            mock_page.return_value.summary = "This author is cool"
+            mock_page.return_value.images = ["Bob.jpg"]
+            with patch("server.get_series_list_by_author") as mock_series:
+                mock_series.return_value = {}
+                result = self.client.get("/author/1")
+        self.assertEqual(result.status_code, 200)
+        self.assertIn(b"Favorite this author", result.data)
+        self.assertIn(b"Bob Bob", result.data)
+        self.assertIn(b"This author is cool", result.data)
+        self.assertIn(b"Bob.jpg", result.data)
+        self.assertIn(b"No series", result.data)
 
     def test_user_series_page_dne(self):
         """Tests to see if logged-in user gets redirected properly when attempting to access a page that does not exist"""

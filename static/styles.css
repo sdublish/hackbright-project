@@ -1,0 +1,10 @@
+#banner {
+    background-image: url("../static/img/book-banner.png");
+    height: 100px;
+    background-repeat: no-repeat;
+    background-size: 100%;
+}
+#banner-title{
+    padding:23px;
+    font-size: xx-large;
+}

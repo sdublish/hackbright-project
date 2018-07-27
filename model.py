@@ -15,12 +15,13 @@ class User(db.Model):
     lname = db.Column(db.String(40), nullable=False)
     email = db.Column(db.String(64), nullable=False)
     password = db.Column(db.String(150), nullable=False)
-    age = db.Column(db.Integer, nullable=True)
-    zipcode = db.Column(db.String(6), nullable=True)
+    age = db.Column(db.Integer, nullable=True)  # remove
+    zipcode = db.Column(db.String(6), nullable=True)  # remove
     fav_book = db.Column(db.String(60), nullable=True)
-    # want to remove: age, zipcode (since not doing anything with events)
-    # want to add: are series private, are authors private
-    # maybe add something linking users or something... that would also be a privacy option
+    # add description column (db.Text or something like that)
+    # add is_fav_series_private
+    # add is_fav_author_private
+    # storing goodreads authorization key??
 
     fav_authors = db.relationship("Fav_Author")
     fav_series = db.relationship("Fav_Series")

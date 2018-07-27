@@ -11,11 +11,11 @@ goodreads_key = os.environ["GOODREADS_API_KEY"]
 def get_author_goodreads_info(author_name):
     """ Given author name, returns (goodreads_id, goodreads_name), if it exists.
     Otherwise returns (None, None)."""
-    payload = {"key": goodreads_key}
-    url = "https://www.goodreads.com/api/author_url/{}".format(author_name)
     goodreads_id = None
     goodreads_name = None
 
+    payload = {"key": goodreads_key}
+    url = "https://www.goodreads.com/api/author_url/{}".format(author_name)
     response = requests.get(url, params=payload)
 
     if response.status_code == 200:
@@ -24,9 +24,6 @@ def get_author_goodreads_info(author_name):
         if tree.find("author"):
             goodreads_id = tree.find("author").attrib["id"]
             goodreads_name = tree.find("author").find("name").text
-            # if this is a dictionary, can't I solve this with get?
-            # well, not if the dictionary doesn't exist in the first place?
-            # Need to check on this
 
     return (goodreads_id, goodreads_name)
 
@@ -55,8 +52,7 @@ def sort_series(series_list):
         return {}
 
     elif len(by_user_position) == 1:
-        # i could also just get the first thing in the list of values...
-        return by_user_position.popitem()[1]
+        return list(by_user_position.values())[0]
 
     else:
         smallest_user_position = min(key for key in by_user_position if key is not None and key >= "1")
@@ -64,6 +60,7 @@ def sort_series(series_list):
 
 
 def get_series_list_by_author(author_id):
+    """ Queries the Goodreads API and gets a list of series associated with this author id"""
     payload = {"key": goodreads_key, "id": author_id}
     response = requests.get("https://www.goodreads.com/series/list", params=payload)
 
@@ -159,6 +156,7 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
 
 
 def get_info_for_work(work):
+    """ Given a work, gets the title, author, cover image, and publication date for said book"""
     title = work.find("work").find("best_book").find("title").text
     author = work.find("work").find("best_book").find("author").find("name").text
     image = work.find("work").find("best_book").find("image_url").text.strip()

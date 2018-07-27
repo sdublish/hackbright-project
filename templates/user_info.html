@@ -19,7 +19,6 @@
 </ul></p>
 <h3> Search History </h3>
 <table class="table table-striped table-bordered">
-    <caption> Search history </caption>
     <thead>
     <tr>
         <th scope="col"> Date Searched </th>
@@ -47,6 +46,8 @@
 </tbody>
 
     </table>
+ <div class="row">  
+<div class="col-md-4">
 
 <h3> Update Profile </h3>
 <!--Another thing which I neeed to think about... how to update profile (and database!) without changing the page. I think I can AJAX it, but let's first try to get that set up without AJAX -->
@@ -58,7 +59,8 @@ Update zipcode: <input type="text" name="zipcode"><br>
 Update favorite book: <input type="text" name="fav-book"><br>
 <input type="Submit" value="Update">
 </form>
-
+</div>
+<div class="col-md-4">
 <h3> Update Favorite Authors </h3>
 <form action="/update-authors" method="POST">
 <input type="hidden" name="user_id" value="{{ user.user_id }}">
@@ -68,8 +70,8 @@ List the authors you would like to add on a new line:<br>
 <textarea name="new-author"></textarea><br>
 <input type="Submit" value="Update">
 </form>
-
-
+</div>
+<div class="col-md-4">
 <h3> Update Favorite Series </h3>
 <form action="/update-series" method="POST">
 <input type="hidden" name="user_id" value="{{ user.user_id }}">
@@ -81,6 +83,7 @@ Please select which series you would like to add: <br>
 {% endfor %}
 <input type="Submit" value="Update">
 </form>
-
+</div>
+</div>
 {% endif %}
 {% endblock %}

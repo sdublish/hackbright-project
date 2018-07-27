@@ -23,7 +23,7 @@ app.jinja_env.undefined = StrictUndefined
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 # dictionary in format of (days, what option is called)
 timeframes = {183: "Next Six Months", 365: "Next Year", 730: "In Two Years",
-              0: "Default"}
+              0: "First Book Found"}
 
 
 @app.route("/")
@@ -84,12 +84,16 @@ def search_json():
                     for work in results["items"][1:]:
                         date2 = get_pub_date_with_book_id(work["id"])
                         pdate2 = convert_string_to_datetime(date2)
+                        next_book_cover2 = "https://d298d76i4rjz9u.cloudfront.net/assets/no-cover-art-found-c49d11316f42a2f9ba45f46cfe0335bbbc75d97c797ac185cdb397a6a7aad78c.jpg"
+
+                        if work["volumeInfo"].get("imageLinks"):
+                            next_book_cover2 = work["volumeInfo"]["imageLinks"]["thumbnail"]
 
                         if pdate2 < py_date:
                             result = (None, None, "http://sendmeglobal.net/images/404.png")
                             break
                         elif py_date <= pdate2 <= py_date + td:
-                            result = (work["volumeInfo"]["title"], date2, next_book_cover)
+                            result = (work["volumeInfo"]["title"], date2, next_book_cover2)
                             break
 
             if "search_history" in session:
@@ -125,7 +129,6 @@ def show_adv_search():
 @app.route("/by-author", methods=["POST"])
 def search_by_author():
     author_name = request.form.get("author")
-    # need to make sure we actually got an input from author?
     author = Author.query.filter_by(author_name=author_name).first()
 
     if author:  # author is in database
