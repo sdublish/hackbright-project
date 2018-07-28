@@ -4,6 +4,7 @@ import requests
 import wikipedia
 
 from flask import Flask, session, request, render_template, redirect, flash, jsonify
+from flask_mail import Mail
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -20,10 +21,25 @@ from jinja2 import StrictUndefined
 app = Flask(__name__)
 app.jinja_env.undefined = StrictUndefined
 
+mail_settings = {
+    "MAIL_SERVER": "smtp.gmail.com",
+    "MAIL_PORT": 465,
+    "MAIL_USE_SSL": True,
+    "MAIL_USERNAME": os.environ["APP_EMAIL"],
+    "MAIL_DEFAULT_SENDER": os.environ["APP_EMAIL"],
+    "MAIL_PASSWORD": os.environ["APP_EMAIL_PASSWORD"]
+}
+
+app.config.update(mail_settings)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
+mail = Mail(app)
+
+
 # dictionary in format of (days, what option is called)
 timeframes = {183: "Next Six Months", 365: "Next Year", 730: "In Two Years",
               0: "First Book Found"}
+no_cover_img = "https://d298d76i4rjz9u.cloudfront.net/assets/no-cover-art-found-c49d11316f42a2f9ba45f46cfe0335bbbc75d97c797ac185cdb397a6a7aad78c.jpg"
+no_results_img = "http://sendmeglobal.net/images/404.png"
 
 
 @app.route("/")
@@ -61,11 +77,11 @@ def search_json():
         response = requests.get("https://www.googleapis.com/books/v1/volumes", params=payload)
 
         if response.status_code == 200:
-            results = response.json()  # returns a very complicated dictionary
+            results = response.json()
             # can clean up the code here
             next_book = results["items"][0]["volumeInfo"]
-            # set some default image here
-            next_book_cover = "https://d298d76i4rjz9u.cloudfront.net/assets/no-cover-art-found-c49d11316f42a2f9ba45f46cfe0335bbbc75d97c797ac185cdb397a6a7aad78c.jpg"
+            next_book_cover = no_cover_img
+
             if results["items"][0]["volumeInfo"].get("imageLinks"):
                 next_book_cover = results["items"][0]["volumeInfo"]["imageLinks"]["thumbnail"]
 
@@ -79,18 +95,18 @@ def search_json():
 
             if td and not (py_date <= pdate <= py_date + td):
                 if pdate < py_date:
-                    result = (None, None, "http://sendmeglobal.net/images/404.png")
+                    result = (None, None, no_results_img)
                 else:
                     for work in results["items"][1:]:
                         date2 = get_pub_date_with_book_id(work["id"])
                         pdate2 = convert_string_to_datetime(date2)
-                        next_book_cover2 = "https://d298d76i4rjz9u.cloudfront.net/assets/no-cover-art-found-c49d11316f42a2f9ba45f46cfe0335bbbc75d97c797ac185cdb397a6a7aad78c.jpg"
+                        next_book_cover2 = no_cover_img
 
                         if work["volumeInfo"].get("imageLinks"):
                             next_book_cover2 = work["volumeInfo"]["imageLinks"]["thumbnail"]
 
                         if pdate2 < py_date:
-                            result = (None, None, "http://sendmeglobal.net/images/404.png")
+                            result = (None, None, no_results_img)
                             break
                         elif py_date <= pdate2 <= py_date + td:
                             result = (work["volumeInfo"]["title"], date2, next_book_cover2)
@@ -106,7 +122,10 @@ def search_json():
 
             return jsonify({"results": result, "most_recent": most_recent})
 
+        # need to figure out how I want to handle if the API throws an error
+
     else:  # if series is being searched
+        # need to modify this to handle what would happen if it returns an error
         series = Series.query.filter_by(series_name=series_name).first()
         results = get_last_book_of_series(series_name, series.goodreads_id, py_date, td)
 
@@ -247,6 +266,7 @@ def series_by_books():
         if response.status_code == 200:
             tree = ET.fromstring(response.content)
             series = {}
+
             if tree.find("series_works"):  # if the book is part of a series
                 all_series = list(tree.find("series_works"))
                 series = sort_series(all_series)
@@ -326,7 +346,7 @@ def logout():
         del session["search_history"]
         flash("Logged out!")
 
-    else:  # don't think I need this check if I have one built into template creation?
+    else:  # safety check just in case someome tries to access manually
         flash("Not logged in!")
 
     return redirect("/")
@@ -350,7 +370,7 @@ def signup():
         lname = request.form.get("lname")
         password = request.form.get("password")
 
-        # not sure if this check is necessary... or constructed properly
+        # only adds user to database if none of the inputs are empty/a string of spaces
         if fname and lname and email and password:
             db.session.add(User(email=email, fname=fname, lname=lname,
                                 password=generate_password_hash(password)))
@@ -392,18 +412,28 @@ def show_profile(user_id):
 @app.route("/update-profile", methods=["POST"])
 def update_profile():
     user_id = request.form.get("user_id")
-    age = request.form.get("age")
-    zipcode = request.form.get("zipcode")
+    description = request.form.get("description")
     fav_book = request.form.get("fav-book")
+    des_pub = request.form.get("descr-publ")
+    fav_series_pub = request.form.get("fs-publ")
+    fav_author_pub = request.form.get("fa-publ")
 
     user = User.query.get(user_id)
 
-    if age:
-        user.age = age
-    if zipcode:
-        user.zipcode = zipcode
     if fav_book:
         user.fav_book = fav_book
+
+    if description:
+        user.description = description
+
+    if des_pub:
+        user.is_description_public = bool(int(des_pub))
+
+    if fav_author_pub:
+        user.is_fav_author_public = bool(int(fav_author_pub))
+
+    if fav_series_pub:
+        user.is_fav_series_public = bool(int(fav_series_pub))
 
     db.session.commit()
 

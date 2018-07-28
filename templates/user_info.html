@@ -2,21 +2,27 @@
 {% block title %} {{ user.fname }}'s Info {% endblock %}
 {% block content %}
 <h1> {{ user.fname }} {{ user.lname }} </h1>
-<!-- Privacy settings for user??? -->
 
 <p> Favorite book: {{ user.fav_book }} </p>
 
-{% if session.get("user_id") == user.user_id %}
-<p> Age: {{ user.age }} </p>
-<p> Zipcode: {{ user.zipcode }} </p>
+{% if user.is_description_public or session.get("user_id") == user.user_id %}
+<p> Description: {{ user.description }} </p>
+{% endif %}
+
+{% if user.is_fav_author_public or session.get("user_id") == user.user_id %}
 <p> Favorite authors: <ul>{% for fav_author in user.fav_authors %} 
     <li> <a href="/author/{{fav_author.author.author_id}}">{{ fav_author.author.author_name }}</a> </li>
 {% endfor %}
 </ul></p>
+{% endif %}
+{% if user.is_fav_series_public or session.get("user_id") == user.user_id %}
 <p> Favorite series: <ul>{% for fs in user.fav_series %} 
     <li><a href="/series/{{fs.series.series_id}}"> {{ fs.series.series_name }}</a> </li>
 {% endfor %}
 </ul></p>
+{% endif %}
+
+{% if session.get("user_id") == user.user_id %}
 <h3> Search History </h3>
 <table class="table table-striped table-bordered">
     <thead>
@@ -54,9 +60,12 @@
 
 <form action="/update-profile" method="POST">
 <input type="hidden" name="user_id" value="{{ user.user_id }}">
-Update age: <input type="number" min="1" name="age"><br>
-Update zipcode: <input type="text" name="zipcode"><br>
+Update description: <br><textarea name="description"></textarea><br>
 Update favorite book: <input type="text" name="fav-book"><br>
+Display description publicly: 
+<input type="radio" name="descr-publ" value="1"> Yes <input type="radio" name="descr-publ" value="0"> No <br>
+Display favorite series publicly:<input type="radio" name="fs-publ" value="1"> Yes <input type="radio" name="fs-publ" value="0"> No <br>
+Display favorite authors publicly: <input type="radio" name="fa-publ" value="1"> Yes <input type="radio" name="fa-publ" value="0"> No <br>
 <input type="Submit" value="Update">
 </form>
 </div>

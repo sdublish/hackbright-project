@@ -79,80 +79,85 @@ def get_series_list_by_author(author_id):
 
 
 def get_last_book_of_series(series_name, series_id, date, timeframe):
+    """ Given a series name, date of search, and timeframe, returns a dictionary containing the info of the
+    last book published in that series in the timeframe provided. If API error, returns
+    a dictionary with key 'status' and value 'error'."""
     payload = {"key": goodreads_key, "id": series_id}
     response = requests.get("https://www.goodreads.com/series/show/", params=payload)
-    # also need to do some checks to make sure everything is working well with the API
-    tree = ET.fromstring(response.content)
-    series_length = tree.find("series").find("primary_work_count").text
-    series_works = list(tree.find("series").find("series_works"))
-    by_user_position = {}
 
-    for work in series_works:
-        user_position = work.find("user_position").text
-        # user position, at least in a series, seems to be pretty unique
-        # or we can store it in a list and just get the first one out.
-        by_user_position[user_position] = work
+    if response.status_code == 200:
+        tree = ET.fromstring(response.content)
+        series_length = tree.find("series").find("primary_work_count").text
+        series_works = list(tree.find("series").find("series_works"))
+        by_user_position = {}
 
-    title = 'untitled'
-    published = None
+        for work in series_works:
+            user_position = work.find("user_position").text
+            by_user_position[user_position] = work
 
-    # i am pretty sure I can write this while loop prettier
-    # also, may want to change it so it just looks for a publication date
-    # basically I need to hash out these conditions
+        title = 'untitled'
+        published = None
 
-    while ('untitled' in title.lower() and published is None) and series_length >= "1":
-        work = by_user_position.get(series_length)
+        # i am pretty sure I can write this while loop prettier
+        # also, may want to change it so it just looks for a publication date
+        # basically I need to hash out these conditions
 
-        if work is None:
-            last_position = max(by_user_position.keys())
-            work = by_user_position[last_position]
+        while ('untitled' in title.lower() and published is None) and series_length >= "1":
+            work = by_user_position.get(series_length)
 
-        work_info = get_info_for_work(work)
-        title = work_info["title"]
-        published = work_info["published"]
-        cover = work_info["cover"]
+            if work is None:
+                last_position = max(by_user_position.keys())
+                work = by_user_position[last_position]
 
-        series_length = str(int(series_length) - 1)
+            work_info = get_info_for_work(work)
+            title = work_info["title"]
+            published = work_info["published"]
+            cover = work_info["cover"]
 
-    if published is None:
-        published = get_pub_date_with_title(title)
+            series_length = str(int(series_length) - 1)
 
-    most_recent = (title, published, cover)
-    result = most_recent
+        if published is None:
+            published = get_pub_date_with_title(title)
 
-    pdate = convert_string_to_datetime(published)
+        most_recent = (title, published, cover)
+        result = most_recent
 
-    if timeframe and not (date <= pdate <= date + timeframe):
-        if pdate < date:
-            result = (None, None, "http://sendmeglobal.net/images/404.png")
+        pdate = convert_string_to_datetime(published)
 
-        else:
-            while series_length >= "1":
-                work = by_user_position[series_length]
-                work_info = get_info_for_work(work)
-                title2 = work_info["title"]
-                published2 = work_info["published"]
-                cover = work_info["cover"]
+        if timeframe and not (date <= pdate <= date + timeframe):
+            if pdate < date:
+                result = (None, None, "http://sendmeglobal.net/images/404.png")
 
-                if published2 is None:
-                    published2 = get_pub_date_with_title(title)
+            else:
+                while series_length >= "1":
+                    work = by_user_position[series_length]
+                    work_info = get_info_for_work(work)
+                    title2 = work_info["title"]
+                    published2 = work_info["published"]
+                    cover = work_info["cover"]
 
-                pdate2 = convert_string_to_datetime(published2)
+                    if published2 is None:
+                        published2 = get_pub_date_with_title(title)
 
-                if pdate2 < date:
-                    result = (None, None, "http://sendmeglobal.net/images/404.png")
-                    break
+                    pdate2 = convert_string_to_datetime(published2)
 
-                elif pdate <= pdate2 <= date + timeframe:
-                    result = (title2, pdate2, cover)
-                    break
+                    if pdate2 < date:
+                        result = (None, None, "http://sendmeglobal.net/images/404.png")
+                        break
 
-                series_length = str(int(series_length) - 1)
+                    elif pdate <= pdate2 <= date + timeframe:
+                        result = (title2, pdate2, cover)
+                        break
 
-        if series_length == "0":
-            result = (None, None, "http://sendmeglobal.net/images/404.png")
+                    series_length = str(int(series_length) - 1)
 
-    return {'most_recent': most_recent, 'results': result}
+            if series_length == "0":
+                result = (None, None, "http://sendmeglobal.net/images/404.png")
+
+        return {'status': 'ok', 'most_recent': most_recent, 'results': result}
+
+    else:
+        return {'status': 'error'}
 
 
 def get_info_for_work(work):

@@ -3,6 +3,7 @@ from datetime import datetime
 
 
 class MLStripper(HTMLParser):
+    """ Class to strip plaintext of any html tags"""
     def __init__(self):
         super().__init__()
         self.reset()
@@ -18,6 +19,7 @@ class MLStripper(HTMLParser):
 
 
 def strip_tags(html):
+    """ Function that strips tags based off MLStripper class """
     s = MLStripper()
     s.feed(html)
     return s.get_data()

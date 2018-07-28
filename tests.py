@@ -2,14 +2,14 @@
 
 from unittest import TestCase, main
 import xml.etree.ElementTree as ET
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import patch
 from flask import session
 
 from server import app
 from model import connect_to_db, db, example_data
 from goodreads_util import (sort_series, get_info_for_work, get_author_goodreads_info,
-                            get_series_list_by_author)
+                            get_series_list_by_author, get_last_book_of_series)
 from google_util import get_pub_date_with_book_id, get_pub_date_with_title
 from server_util import convert_string_to_datetime, strip_tags
 
@@ -237,10 +237,53 @@ class GoodreadsUtilTests(TestCase):
                 mock_sort.return_value = {"1": "a series"}
                 self.assertEqual(get_series_list_by_author("1"), {"1": "a series"})
 
+    def test_get_last_books_of_series_error(self):
+        """ Tests to see if function returns error if issue occurs during API call"""
+        with patch('requests.get') as mock_request:
+            mock_request.return_value.status_code = 400
+            self.assertEqual({'status': 'error'}, get_last_book_of_series("a", "b", 1, 1))
+
+    def test_get_last_book_of_series_default(self):
+        """ Tests to see if function returns expected value when searching in default timeframe"""
+        with patch('requests.get') as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = """<response><series>
+            <primary_work_count>2</primary_work_count>
+            <series_works><series_work>
+            <user_position> 2 </user_position>
+            <work> <best_book> <title>Test 2</title>
+            <author> <name>Smith Bob</name></author>
+            <image_url> url </image_url></best_book>
+            <original_publication_year>2016</original_publication_year>
+            <original_publication_month>3</original_publication_month>
+            <original_publication_day>9</original_publication_day>
+            </work></series_work></series_works></series></response>"""
+            exp_result = ('Test 2', '2016-03-09', 'url')
+            exp_dict = {'status': 'ok', 'most_recent': exp_result, 'results': exp_result}
+            self.assertEqual(exp_dict, get_last_book_of_series('series', '1', 'date', 0))
+
+    def test_get_last_book_of_series_not_in_range(self):
+        """Tests to see if function returns expected value when there are no books in search range"""
+        with patch('requests.get') as mock_request:
+            mock_request.return_value.status_code = 200
+            mock_request.return_value.content = """<response><series>
+            <primary_work_count>2</primary_work_count>
+            <series_works><series_work>
+            <user_position> 2 </user_position>
+            <work> <best_book> <title>Test 2</title>
+            <author> <name>Smith Bob</name></author>
+            <image_url> url </image_url></best_book>
+            <original_publication_year>2016</original_publication_year>
+            <original_publication_month>3</original_publication_month>
+            <original_publication_day>9</original_publication_day>
+            </work></series_work></series_works></series></response>"""
+            exp_mr = ('Test 2', '2016-03-09', 'url')
+            exp_r = (None, None, "http://sendmeglobal.net/images/404.png")
+            self.assertEqual({'status': 'ok', 'most_recent': exp_mr, "results": exp_r}, get_last_book_of_series('series', 1, datetime.now(), timedelta(days=183)))
+
 
 class FlaskNotLoggedInTests(TestCase):
     """ Integration tests for when user is not logged in"""
-    # check to see if log-in button appears? or is that a different kind of test?
     def setUp(self):
         """Sets up app for a not-logged in user"""
         self.client = app.test_client()
@@ -432,11 +475,13 @@ class FlaskNotLoggedInDatabaseTests(TestCase):
         self.assertIn(b"Bob&#39;s Adventure", result.data)
 
     def test_user_info_page(self):
-        """Tests to see if user info page renders properly"""
+        """Tests to see if user info page renders properly, only showing data which is public"""
         result = self.client.get("/user/1")
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Bob Bob", result.data)
         self.assertIn(b"Bob&#39;s First Adventure", result.data)
+        self.assertIn(b"Bob&#39;s Adventure", result.data)
+        self.assertNotIn(b"Favorite authors", result.data)
         self.assertNotIn(b"<h3> Update Profile </h3>", result.data)
 
     def test_user_info_dne(self):

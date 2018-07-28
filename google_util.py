@@ -5,6 +5,7 @@ google_books_key = os.environ["GOOGLE_BOOKS_API_KEY"]
 
 
 def get_pub_date_with_title(title):
+    """ Gets the publication date for a book based off its title"""
     payload = {"q": title,
                "langRestrict": "en",
                "printType": "books",
@@ -19,6 +20,7 @@ def get_pub_date_with_title(title):
 
 
 def get_pub_date_with_book_id(google_id):
+    """ Gets a publicatioon date for a book based off its Google Book ID"""
     payload = {"key": google_books_key}
     url = "https://www.googleapis.com/books/v1/volumes/{}".format(google_id)
 

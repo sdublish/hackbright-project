@@ -15,12 +15,12 @@ class User(db.Model):
     lname = db.Column(db.String(40), nullable=False)
     email = db.Column(db.String(64), nullable=False)
     password = db.Column(db.String(150), nullable=False)
-    age = db.Column(db.Integer, nullable=True)  # remove
-    zipcode = db.Column(db.String(6), nullable=True)  # remove
+    description = db.Column(db.Text, nullable=True)
     fav_book = db.Column(db.String(60), nullable=True)
-    # add description column (db.Text or something like that)
-    # add is_fav_series_private
-    # add is_fav_author_private
+    is_description_public = db.Column(db.Boolean, nullable=False, default=False)
+    is_fav_series_public = db.Column(db.Boolean, nullable=False, default=False)
+    is_fav_author_public = db.Column(db.Boolean, nullable=False, default=False)
+
     # storing goodreads authorization key??
 
     fav_authors = db.relationship("Fav_Author")
@@ -98,7 +98,7 @@ def example_data():
     Author.query.delete()
     Series.query.delete()
 
-    u1 = User(fname="Bob", lname="Bob", email="bob@bob.com", password=generate_password_hash("bob"), fav_book="Bob's First Adventure")
+    u1 = User(fname="Bob", lname="Bob", email="bob@bob.com", password=generate_password_hash("bob"), fav_book="Bob's First Adventure", is_fav_series_public=True)
     u2 = User(fname="Jane", lname="Debugger", email="jdeb@gmail.com", password=generate_password_hash("bugs"))
     a1 = Author(author_name="Bob Bob", goodreads_id="8388")
     a2 = Author(author_name="The Cool Dude")
