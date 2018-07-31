@@ -44,16 +44,30 @@ class GoogleUtilTests(TestCase):
     def test_pub_date_with_book_id(self):
         """Tests to see if function returns date when given a dictionary from API"""
         with patch('requests.get') as mock_request:
+            mock_request.return_value.status_code = 200
             mock_request.return_value.json.return_value = {"volumeInfo": {"publishedDate": "2016-07-07"}}
             self.assertEqual("2016-07-07", get_pub_date_with_book_id("1"))
+
+    def test_pub_date_with_book_id_error(self):
+        """ Tests to see if function returns string error when API error occurs"""
+        with patch('requests.get') as mock_request:
+            mock_request.return_value.status_code = 400
+            self.assertEqual("error", get_pub_date_with_book_id("1"))
 
     def test_pub_date_with_title(self):
         """ Tests to see if function returns date when given a title"""
         with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 200
             mock_request.return_value.json.return_value = {"items": [{"id": "1"}]}
             with patch("google_util.get_pub_date_with_book_id") as mock_result:
                 mock_result.return_value = "2016-08-03"
                 self.assertEqual("2016-08-03", get_pub_date_with_title("Title"))
+
+    def test_pub_date_with_title_error(self):
+        """Tests to see if function returns string error when API error occurs"""
+        with patch("requests.get") as mock_request:
+            mock_request.return_value.status_code = 400
+            self.assertEqual("error", get_pub_date_with_title("Title"))
 
 
 class GoodreadsUtilTests(TestCase):

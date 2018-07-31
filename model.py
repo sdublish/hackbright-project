@@ -98,7 +98,8 @@ def example_data():
     Author.query.delete()
     Series.query.delete()
 
-    u1 = User(fname="Bob", lname="Bob", email="bob@bob.com", password=generate_password_hash("bob"), fav_book="Bob's First Adventure", is_fav_series_public=True)
+    u1 = User(fname="Bob", lname="Bob", email="bob@bob.com", password=generate_password_hash("bob"),
+              fav_book="Bob's First Adventure", is_fav_series_public=True)
     u2 = User(fname="Jane", lname="Debugger", email="jdeb@gmail.com", password=generate_password_hash("bugs"))
     a1 = Author(author_name="Bob Bob", goodreads_id="8388")
     a2 = Author(author_name="The Cool Dude")

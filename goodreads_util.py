@@ -60,7 +60,8 @@ def sort_series(series_list):
 
 
 def get_series_list_by_author(author_id):
-    """ Queries the Goodreads API and gets a list of series associated with this author id"""
+    """ Queries the Goodreads API and gets a dictionary of series associated with this author id.
+    If error occured, returns None. If no series are found, returns empty dictionary. """
     payload = {"key": goodreads_key, "id": author_id}
     response = requests.get("https://www.goodreads.com/series/list", params=payload)
 

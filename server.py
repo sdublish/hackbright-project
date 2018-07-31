@@ -5,6 +5,7 @@ import wikipedia
 
 from flask import Flask, session, request, render_template, redirect, flash, jsonify
 from flask_mail import Mail
+from flask_oauthlib.client import OAuth
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -34,6 +35,13 @@ app.config.update(mail_settings)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 mail = Mail(app)
 
+oauth = OAuth()
+goodreads = oauth.remote_app('goodreads', request_token_url='https://www.goodreads.com/oauth/request_token',
+                             authorize_url='https://www.goodreads.com/oauth/authorize',
+                             access_token_url='https://www.goodreads.com/oauth/access_token',
+                             base_url='https://www.goodreads.com/', consumer_key=goodreads_key,
+                             consumer_secret=os.environ["GOODREADS_API_SECRET"])
+
 
 # dictionary in format of (days, what option is called)
 timeframes = {183: "Next Six Months", 365: "Next Year", 730: "In Two Years",
@@ -44,11 +52,13 @@ no_results_img = "http://sendmeglobal.net/images/404.png"
 
 @app.route("/")
 def show_homepage():
+    """ Renders homepage """
     return render_template("homepage.html")
 
 
 @app.route("/search")
 def show_search():
+    """ Renders search page """
     series = Series.query.all()
     return render_template("search.html", series=series, tfs=timeframes)
 
@@ -65,8 +75,7 @@ def search_json():
     py_date = datetime.strptime(date_str, "%b %d %Y")
     td = timedelta(days=timeframe)
 
-    if author:
-        # check to see if author is in database, add if it isn't?
+    if author:  # considering moving this to google_util, even though functionality isn't reused
         payload = {"q": "inauthor:" + author,
                    "langRestrict": "en",
                    "orderBy": "newest",
@@ -88,6 +97,7 @@ def search_json():
             next_book_id = results["items"][0]["id"]
 
             published_date = get_pub_date_with_book_id(next_book_id)
+            # what if this returns an error? What do I want to do?
             pdate = convert_string_to_datetime(published_date)
 
             most_recent = (next_book["title"], published_date, next_book_cover)
@@ -142,6 +152,7 @@ def search_json():
 
 @app.route("/adv-search")
 def show_adv_search():
+    """ Renders advanced search page """
     return render_template("adv-search.html")
 
 
@@ -154,8 +165,8 @@ def search_by_author():
         title = "Series by {}".format(author_name)
         if author.goodreads_id:  # if author has goodreads id
                 series_info = get_series_list_by_author(author.goodreads_id)
+
                 if series_info is not None:  # if we get results
-                    # also I probably should add search results to search history as well
                     return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
@@ -200,6 +211,7 @@ def search_by_author():
                 else:  # did not get results/returned None
                     flash("An error occured. Please try again")
                     return redirect("/adv-search")
+
             else:  # author is not in database
                 db.session.add(Author(author_name=actual_info[1], goodreads_id=actual_info[0]))
                 db.session.commit()
@@ -208,6 +220,7 @@ def search_by_author():
                 if series_info is not None:  # if we get results
                     if author_name != actual_info[1]:
                         flash("Showing results for {} instead of {}".format(actual_info[1], author_name))
+
                     title = "Series by {}".format(actual_info[1])
                     return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
@@ -312,13 +325,13 @@ def show_series_results():
 
         return jsonify(results)
 
-    else:  # Need to change what I want to show as an error here
-        flash("An error occured. Please try again.")
-        return redirect("/adv-search")
+    else:
+        return jsonify({"status": "error"})
 
 
 @app.route("/login", methods=["GET"])
 def show_login():
+    """ Renders login page """
     return render_template("login.html")
 
 
@@ -341,6 +354,7 @@ def login():
 
 @app.route("/logout")
 def logout():
+    """ Logs out user """
     if "user_id" in session:
         del session["user_id"]
         del session["search_history"]
@@ -354,6 +368,7 @@ def logout():
 
 @app.route("/sign-up", methods=["GET"])
 def show_signup():
+    """ Renders sign-up page """
     return render_template("signup.html")
 
 
@@ -370,7 +385,7 @@ def signup():
         lname = request.form.get("lname")
         password = request.form.get("password")
 
-        # only adds user to database if none of the inputs are empty/a string of spaces
+        # is there a way to prevent a user from signing up as a string of spaces??
         if fname and lname and email and password:
             db.session.add(User(email=email, fname=fname, lname=lname,
                                 password=generate_password_hash(password)))
@@ -394,7 +409,9 @@ def signup():
 
 @app.route("/user/<user_id>")
 def show_profile(user_id):
+    """ Renders user profile page """
     user = User.query.get(user_id)
+
     if user:
         # you know, I could probably change this query so it only returns the series_id...
         fav_series_id = [s.series_id for s in Fav_Series.query.filter_by(user_id=user_id).all()]
@@ -549,6 +566,7 @@ def update_fav_series():
 
 @app.route("/author/<author_id>")
 def show_author_info(author_id):
+    """ Renders author info page """
     author = Author.query.get(author_id)
 
     if author:
@@ -580,12 +598,14 @@ def show_author_info(author_id):
         flash("Author does not exist. Please try again!")
         if "user_id" in session:
             return redirect("/user/{}".format(session["user_id"]))
+
         else:
             return redirect("/")
 
 
 @app.route("/series/<series_id>")
 def show_series_info(series_id):
+    """ Renders series info page """
     series = Series.query.get(series_id)
 
     if series:
@@ -604,6 +624,7 @@ def show_series_info(series_id):
 
             for work in series_works:
                 valid_positions = [str(i) for i in range(1, int(series_info["length"]) + 1)]
+                # maybe make this a set?
 
                 if work.find("user_position").text in valid_positions:
                     work_info = get_info_for_work(work)
@@ -612,7 +633,7 @@ def show_series_info(series_id):
                     cover = work_info["cover"]
 
                     if pub_date is None:
-                        if 'untitled' in title.lower():
+                        if 'untitled' in title.lower():  # if the book currently has no title
                             pub_date = "TBA"
 
                         else:
@@ -633,12 +654,13 @@ def show_series_info(series_id):
 
         if "user_id" in session:
             return redirect("/user/{}".format(session["user_id"]))
+
         else:
             return redirect("/")
 
 if __name__ == "__main__":
     app.debug = True
     app.jinja_env.auto_reload = app.debug
-    connect_to_db(app, "postgresql:///project")
+    connect_to_db(app)
     DebugToolbarExtension(app)
     app.run(host="0.0.0.0")

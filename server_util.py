@@ -19,7 +19,7 @@ class MLStripper(HTMLParser):
 
 
 def strip_tags(html):
-    """ Function that strips tags based off MLStripper class """
+    """ Function that strips HTML tags based off MLStripper class """
     s = MLStripper()
     s.feed(html)
     return s.get_data()
@@ -30,7 +30,6 @@ def convert_string_to_datetime(date_string):
     object corresponding to said string."""
     date_split = date_string.split("-")
 
-     # might make sense to change the order of these if statements around
     if len(date_split) == 1:
         return datetime.strptime(date_string, "%Y")
     elif len(date_split) == 2:
