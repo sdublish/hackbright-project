@@ -14,6 +14,19 @@
 <p> No information available at this time. </p>
 {% endif %}
 
+{% if "user_id" in session %}
+<a href="/goodreads-follow-author/{{author.author_id}}"><button class="btn"> Follow on Goodreads! </button></a>
+<br><br>
+
+
+<h2> Favorite this author! </h2>
+<form id="fav-author">
+    <input type="submit" value="Favorite">
+</form>
+{% endif %}
+<br> <br>
+<div id="results"> </div>
+
 <h3> Series by {{ author.author_name }} </h3>
 {% if author.goodreads_id %}
 {% if series %}
@@ -29,14 +42,6 @@
 <p> Author is not in Goodreads, and therefore we cannot display series info. Apologies. </p>
 {% endif %}
 
-{% if "user_id" in session %}
-<h2> Favorite this author! </h2>
-<form id="fav-author">
-    <input type="submit" value="Favorite">
-</form>
-{% endif %}
-<br> <br>
-<div id="results"> </div>
 {% endblock %}
 {% block script %}
 {% if "user_id" in session %}

@@ -45,8 +45,9 @@
 </div>
 
 </div>
+<!-- How to handle non-users sending email? If I want to> -->
 {% if "user_id" in session %}
-<button class="btn"> Send Results To Email </button>
+<button id="results-email" class="btn"> Send Results To Email </button>
 {% endif %}
 </div>
 </div>
@@ -55,6 +56,15 @@
 
 {% block script %}
 <script>
+$("#results-email").on("click", function(){
+    // get results 
+    // send results to specified server route
+    $.post("/send-email-results", function(){
+        //pop alert saying email was sent
+        //as well as email address being used
+    });
+
+});
 
 $("#search").on("submit", function(evt){
     evt.preventDefault();

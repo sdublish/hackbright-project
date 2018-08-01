@@ -5,7 +5,7 @@ import wikipedia
 
 from flask import Flask, session, request, render_template, redirect, flash, jsonify
 from flask_mail import Mail
-from flask_oauthlib.client import OAuth
+from rauth import OAuth1Service, OAuth1Session
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -35,13 +35,19 @@ app.config.update(mail_settings)
 app.secret_key = os.environ["FLASK_SECRET_KEY"]
 mail = Mail(app)
 
-oauth = OAuth()
-goodreads = oauth.remote_app('goodreads', request_token_url='https://www.goodreads.com/oauth/request_token',
-                             authorize_url='https://www.goodreads.com/oauth/authorize',
-                             access_token_url='https://www.goodreads.com/oauth/access_token',
-                             base_url='https://www.goodreads.com/', consumer_key=goodreads_key,
-                             consumer_secret=os.environ["GOODREADS_API_SECRET"])
 
+goodreads = OAuth1Service(
+    consumer_key=goodreads_key,
+    consumer_secret=os.environ["GOODREADS_API_SECRET"],
+    name='goodreads',
+    request_token_url='https://www.goodreads.com/oauth/request_token',
+    authorize_url='https://www.goodreads.com/oauth/authorize',
+    access_token_url='https://www.goodreads.com/oauth/access_token',
+    base_url='https://www.goodreads.com/'
+    )
+
+request_token, request_token_secret = goodreads.get_request_token(header_auth=True)
+authorizaton_url = goodreads.get_authorize_url(request_token)
 
 # dictionary in format of (days, what option is called)
 timeframes = {183: "Next Six Months", 365: "Next Year", 730: "In Two Years",
@@ -170,7 +176,7 @@ def search_by_author():
                     return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
-                    flash("An error occured. Please try again")
+                    flash("An error occured. Please try again", "danger")
                     return redirect("/adv-search")
 
         else:  # author does not have a goodreads id
@@ -186,11 +192,11 @@ def search_by_author():
                     return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # error occured/returned None
-                    flash("An error occured. Please try again")
+                    flash("An error occured. Please try again", "danger")
                     return redirect("/adv-search")
 
             else:
-                flash("I'm sorry, we can't find info on this author in our external resources. Sorry about that!")
+                flash("I'm sorry, we can't find info on this author in our external resources. Sorry about that!", "warning")
                 return redirect("/adv-search")
 
     else:  # author is not in database
@@ -204,12 +210,12 @@ def search_by_author():
                 series_info = get_series_list_by_author(possible_author.goodreads_id)
 
                 if series_info is not None:  # if we get results
-                    flash("Showing results for {} instead of {}".format(possible_author.author_name, author_name))
+                    flash("Showing results for {} instead of {}".format(possible_author.author_name, author_name), "info")
                     title = "Series by {}".format(possible_author.author_name)
                     return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
-                    flash("An error occured. Please try again")
+                    flash("An error occured. Please try again", "danger")
                     return redirect("/adv-search")
 
             else:  # author is not in database
@@ -219,17 +225,17 @@ def search_by_author():
 
                 if series_info is not None:  # if we get results
                     if author_name != actual_info[1]:
-                        flash("Showing results for {} instead of {}".format(actual_info[1], author_name))
+                        flash("Showing results for {} instead of {}".format(actual_info[1], author_name), "info")
 
                     title = "Series by {}".format(actual_info[1])
                     return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
-                    flash("An error occured. Please try again")
+                    flash("An error occured. Please try again", "danger")
                     return redirect("/adv-search")
 
         else:  # if no author id is returned
-            flash("Could not find an author with that name. Please try again.")
+            flash("Could not find an author with that name. Please try again.", "warning")
             return redirect("/adv-search")
 
 
@@ -258,7 +264,7 @@ def search_by_book():
         return render_template("book_results.html", query=title, books=book_info)
 
     else:  # tell the user that there was an error
-        flash("Something went wrong. Please try again!")
+        flash("Something went wrong. Please try again!", "danger")
         return redirect("/adv-search")
 
 
@@ -287,11 +293,11 @@ def series_by_books():
             return render_template("series_results.html", series=series, title=title, tfs=timeframes)
 
         else:  # something went wrong with the request
-            flash("Something went wrong. Please try again.")
+            flash("Something went wrong. Please try again.", "danger")
             return redirect("/adv-search")
 
     else:  # for some reason we don't have a book id
-        flash("Something went wrong.")
+        flash("Something went wrong.", "danger")
         return redirect("/adv-search")
 
 
@@ -344,11 +350,11 @@ def login():
     if user and check_password_hash(user.password, password):  # if the email and password match what's in the database
         session["user_id"] = user.user_id
         session["search_history"] = []
-        flash("Successfully logged in!")
+        flash("Successfully logged in!", "success")
         return redirect("/user/{}".format(user.user_id))
 
     else:
-        flash("Incorrect username/password")
+        flash("Incorrect username/password", "warning")
         return redirect("/login")
 
 
@@ -358,10 +364,10 @@ def logout():
     if "user_id" in session:
         del session["user_id"]
         del session["search_history"]
-        flash("Logged out!")
+        flash("Logged out!", "success")
 
     else:  # safety check just in case someome tries to access manually
-        flash("Not logged in!")
+        flash("You can't log out if you're not logged in!", "warning")
 
     return redirect("/")
 
@@ -377,7 +383,7 @@ def signup():
     email = request.form.get("email")
 
     if User.query.filter_by(email=email).first():  # if email exists in database
-        flash("Email already exists. Please try again.")
+        flash("Email already exists. Please try again.", "warning")
         return redirect("/sign-up")
 
     else:
@@ -392,18 +398,18 @@ def signup():
 
             db.session.commit()
 
-            flash("New user successfully added!")
+            flash("New user successfully added!", "success")
 
             user_id = User.query.filter_by(email=email).first().user_id
             session["user_id"] = user_id
             session["search_history"] = []
 
-            flash("You are now logged in, {}!".format(fname))
+            flash("You are now logged in, {}!".format(fname), "info")
 
             return redirect("/user/{}".format(user_id))
 
         else:
-            flash("Please input values into all fields!")
+            flash("Please input values into all fields!", "warning")
             return redirect("/sign-up")
 
 
@@ -419,11 +425,40 @@ def show_profile(user_id):
         return render_template("user_info.html", user=user, series=series)
 
     else:
-        flash("User does not exist")
+        flash("User does not exist", "danger")
         if "user_id" in session:
             return redirect("/user/{}".format(session["user_id"]))
         else:
             return redirect("/")
+
+
+@app.route("/goodreads-oauth")
+def goodreads_oauth():
+    return redirect(authorizaton_url)
+
+
+@app.route("/gr-oauth-authorized")
+def confirm_oauth():
+    authorized = request.args.get("authorize")
+    user = User.query.get(session.get("user_id"))
+
+    if user:
+        if authorized == "1":
+            gr_sess = goodreads.get_auth_session(request_token, request_token_secret)
+            user.goodreads_access_token = gr_sess.access_token
+            user.goodreads_access_token_secret = gr_sess.access_token_secret
+            user.is_goodreads_authorized = True
+            db.session.commit()
+            flash("Successfully authorized!", "success")
+
+        else:
+            flash("Authorization denied. Please try again.", "warning")
+
+        return redirect("/user/{}".format(user.user_id))
+
+    else:
+        flash("Must be logged in to access this feature.", "danger")
+        return redirect("/")
 
 
 @app.route("/update-profile", methods=["POST"])
@@ -454,7 +489,7 @@ def update_profile():
 
     db.session.commit()
 
-    flash("Info successfully updated!")
+    flash("Info successfully updated!", "success")
     return redirect("/user/{}".format(user_id))
 
 
@@ -469,7 +504,7 @@ def update_authors():
             author = Fav_Author.query.filter_by(author_id=author_id, user_id=user_id).first()
             if author:
                 db.session.delete(author)
-                flash("Successfully removed {}".format(author.author.author_name))
+                flash("Successfully removed {}".format(author.author.author_name), "success")
 
     if new_authors:
         for author_name in new_authors:
@@ -477,17 +512,17 @@ def update_authors():
 
             if author:  # if author in database
                 if Fav_Author.query.filter_by(author_id=author.author_id, user_id=user_id).first():
-                    flash("You already liked {}!".format(author.author_name))
+                    flash("You already liked {}!".format(author.author_name), "warning")
 
                 else:
                     db.session.add(Fav_Author(author_id=author.author_id, user_id=user_id))
-                    flash("Successfully added {}".format(author_name))
+                    flash("Successfully added {}".format(author_name), "success")
             else:  # if author is NOT in database
                 # unpack data?
                 goodreads_info = get_author_goodreads_info(author_name)
 
                 if author_name != goodreads_info[1]:  # name entered and name returned from goodreads do not match (indicates typo)
-                    flash("Could not find {}. Did you mean {}?".format(author_name, goodreads_info[1]))
+                    flash("Could not find {}. Did you mean {}?".format(author_name, goodreads_info[1]), "info")
 
                 else:  # author is definitely NOT in database
                     db.session.add(Author(author_name=goodreads_info[1], goodreads_id=goodreads_info[0]))
@@ -495,7 +530,7 @@ def update_authors():
 
                     author_id = Author.query.filter_by(author_name=author_name).first().author_id
                     db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
-                    flash("Successfully added {}".format(author_name))
+                    flash("Successfully added {}".format(author_name), "success")
 
     db.session.commit()
     return redirect("/user/{}".format(user_id))
@@ -529,17 +564,17 @@ def update_series():
             series = Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first()
             if series:  # check to see if in database... useful just-in-case check, but not really needed
                 db.session.delete(series)
-                flash("Successfully removed {}".format(series.series.series_name))
+                flash("Successfully removed {}".format(series.series.series_name), "success")
 
     if new_series:
         for series_id in new_series:
             series = Series.query.get(series_id)
             if Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first():
-                flash("You already liked {}!".format(series.series_name))
+                flash("You already liked {}!".format(series.series_name), "warning")
 
             else:
                 db.session.add(Fav_Series(series_id=series_id, user_id=user_id))
-                flash("Successfully added {}".format(series.series_name))
+                flash("Successfully added {}".format(series.series_name), "success")
 
     # maybe figure out I want to handle if the series check fails later...
 
@@ -595,12 +630,37 @@ def show_author_info(author_id):
         return render_template("author_info.html", author=author, info=author_info, url=author_img, series=series)
 
     else:
-        flash("Author does not exist. Please try again!")
+        flash("Author does not exist. Please try again!", "danger")
         if "user_id" in session:
             return redirect("/user/{}".format(session["user_id"]))
 
         else:
             return redirect("/")
+
+
+@app.route("/goodreads-follow-author/<author_id>")
+def follow_goodreads_author(author_id):
+    user = User.query.get(session.get("user_id"))
+    author = Author.query.get(author_id)  # check to see if author exists as well
+    if user:
+        if user.is_goodreads_authorized:
+            gr_sess = OAuth1Session(consumer_key=goodreads_key,
+                                    consumer_secret=os.environ["GOODREADS_API_SECRET"],
+                                    access_token=user.goodreads_access_token,
+                                    access_token_secret=user.goodreads_access_token_secret)
+
+            data = {'id': author.goodreads_id}  # check to see if goodreads id is present
+            gr_sess.post('https://www.goodreads.com/author_followings', data)
+            flash("Successfully followed {}".format(author.author_name), "success")
+            return redirect("/author/{}".format(author.author_id))
+
+        else:  # could redirect a person to allow them... modify the oauth-authorized route?
+            flash("Not authorized to do this function.", "danger")
+            return redirect("/")
+
+    else:
+        flash("Must be logged in to access this function.", "danger")
+        return redirect("/")
 
 
 @app.route("/series/<series_id>")
@@ -650,7 +710,7 @@ def show_series_info(series_id):
         return render_template("series_info.html", series=series, info=series_info)
 
     else:
-        flash("Series does not exist. Please try again!")
+        flash("Series does not exist. Please try again!", "danger")
 
         if "user_id" in session:
             return redirect("/user/{}".format(session["user_id"]))

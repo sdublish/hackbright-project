@@ -20,8 +20,9 @@ class User(db.Model):
     is_description_public = db.Column(db.Boolean, nullable=False, default=False)
     is_fav_series_public = db.Column(db.Boolean, nullable=False, default=False)
     is_fav_author_public = db.Column(db.Boolean, nullable=False, default=False)
-
-    # storing goodreads authorization key??
+    is_goodreads_authorized = db.Column(db.Boolean, nullable=False, default=False)
+    goodreads_access_token = db.Column(db.String(200), nullable=True)
+    goodreads_access_token_secret = db.Column(db.String(200), nullable=True)
 
     fav_authors = db.relationship("Fav_Author")
     fav_series = db.relationship("Fav_Series")
