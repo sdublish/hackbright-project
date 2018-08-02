@@ -2,8 +2,15 @@
 {% block title %} {{ author.author_name }} {% endblock %}
 {% block content %}
 <h1 class="text-center"> {{ author.author_name }} </h1>
-<!-- Could probably put some conditionals up here; if no one has favorited, if one person has favorited, if two+ have favorited-->
-<h2 class="text-center"> Favorited by {{ author.favorited_by|length }} people </h2>
+<h2 class="text-center">
+{% if author.favorited_by|length == 0 %}
+-Be the first to favorite this author-
+{% elif author.favorited_by|length == 1 %}
+-Favorited by 1 person-
+{% else %}
+-Favorited by {{ author.favorited_by|length }} people-
+{% endif %} 
+</h2>
 {% if info %}
 {% if url %}
 <img class="mx-auto d-block" src="{{ url }}" width="200">
@@ -52,8 +59,7 @@
 // ... can it still be loaded in for the page?
 $("#fav-author").on("submit", function(evt){
     evt.preventDefault();
-    let formInputs = {"user_id": {{ session["user_id"] }},
-                   "author_id": {{ author.author_id}} };
+    let formInputs = {"author_id": {{ author.author_id }} };
     $.post("/update-fav-author.json", formInputs, function(results){
         $("#results").text(results.result);
     });

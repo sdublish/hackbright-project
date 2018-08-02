@@ -2,10 +2,10 @@
 {% block title %} {{ title }} {% endblock %}
 {% block content %}
 {% if series|length > 0 %}
-<div class="row">
-    <div class="col-md-6">
-<h2> {{ title }} </h2>
-<form id="series-search" class="form-group">
+
+<h2 class='text-center'> {{ title }} </h2>
+<div class="row justify-content-center">
+<form id="series-search">
 {% for id, name in series.items() %}
 <div class="form-check">
 <input class="form-check-input" type="radio" value= "{{ id }}" name="series" id="{{ id }}"> 
@@ -29,23 +29,31 @@
 <button type="submit" class="btn"> Look Up Series! </button>
 </form>
 </div>
-<div class="col-md-6">
+<br>
+<div class="row justify-content-center">
+<p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
+</div>
+
+<div class="row justify-content-center" id="results-headline" style="display:none">
     <h2 class="text-center"> Results </h2>
-<p id="results" class="text-center"> No results yet!</p>
+</div>
 <div class="row justify-content-center">
 
-<div class="col-lg-6 mx-auto" id="most-recent">
+<div class="col-lg-6 text-center" id="most-recent">
 </div>
 
-<div class="col-lg-6 mx-auto" id="act-results">
+<div class="col-lg-6 text-center" id="act-results">
 </div>
+{% if "user_id" in session %}
+<br> <br>
+<button id="results-email" class="btn" style="display:none"> Send Results To Email </button>
+{% endif %}
 
 </div>
-</div>
-</div>
-<p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 {% else %}
+<div class="row justify-content-center">
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
+</div>
 {% endif %}
 {% endblock %}
 {% block script %}
@@ -59,15 +67,14 @@ function showResults(result){
     rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
     }
 
-    $("#most-recent").html("<h4>Most Recent</h4><img height='200' src='" + result.most_recent[2] + "'> <p>" + mrPhrase + "</p>" )
-    $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
+    $("#most-recent").html("<h4>Most Recent</h4><img height='200' src='" + result.most_recent[2] + "'> <p>" + mrPhrase + "</p>" );
+    $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" );
+    $("#results-email").show();
 
-    $("#results").text("");
 }
 
 function searchSeries(evt){
     evt.preventDefault();
-    $("#results").text("Searching for info...");
     let date = new Date();
     date = date.toDateString();
     let td = $("input[name=timeframe]:checked").val();
@@ -75,11 +82,24 @@ function searchSeries(evt){
     let IDAsString = `label[for=${seriesID}]`;
     let seriesName = $(IDAsString).text();
     let formInputs = {'id': seriesID, 'name': seriesName, 'date': date, 'timeframe': td};
+    $("#results-headline").show();
     $.post("/series-result.json", formInputs, showResults);
 }
 
 
 
 $("#series-search").on("submit", searchSeries);
+
+$("#results-email").on("click", function(){
+    let seriesID = $('input[name=series]:checked').val();
+    let IDAsString = `label[for=${seriesID}]`;
+    let seriesName = $(IDAsString).text();
+    let title = "Bibliofind Search Results for " + seriesName;
+    let formInputs = {"result": $("#act-results").html(), "title": title};
+    $.post("/email-info.json", formInputs, function(results){
+        alert(results["status"]);
+    });
+
+});
  </script>
  {% endblock %}

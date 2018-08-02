@@ -4,7 +4,7 @@ import requests
 import wikipedia
 
 from flask import Flask, session, request, render_template, redirect, flash, jsonify
-from flask_mail import Mail
+from flask_mail import Mail, Message
 from rauth import OAuth1Service, OAuth1Session
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -103,6 +103,7 @@ def search_json():
             next_book_id = results["items"][0]["id"]
 
             published_date = get_pub_date_with_book_id(next_book_id)
+            # if error, return jsonify({status:error})
             # what if this returns an error? What do I want to do?
             pdate = convert_string_to_datetime(published_date)
 
@@ -154,6 +155,22 @@ def search_json():
             session["search_history"] = s_history
 
         return jsonify(results)
+
+
+@app.route("/email-info.json", methods=["POST"])
+def email_search_results():
+    """Sends email to user if logged in. Returns json indicating if email was sent successfully"""
+    user = User.query.get(session.get("user_id"))
+    result = request.form.get("result")
+    title = request.form.get("title")
+
+    if user:
+        msg = Message(subject=title, html=result, recipients=[user.email])
+        mail.send(msg)
+        return jsonify({"status": "Email sent! Look for bibliofindapp@gmail.com in your inbox."})
+
+    else:
+        return jsonify({"status": "An error occurred. Make sure you're signed in."})
 
 
 @app.route("/adv-search")
@@ -434,11 +451,13 @@ def show_profile(user_id):
 
 @app.route("/goodreads-oauth")
 def goodreads_oauth():
+    """ Provides url needed for Goodreads OAuth """
     return redirect(authorizaton_url)
 
 
 @app.route("/gr-oauth-authorized")
 def confirm_oauth():
+    """ Processes response for Goodreads OAuth """
     authorized = request.args.get("authorize")
     user = User.query.get(session.get("user_id"))
 
@@ -538,7 +557,7 @@ def update_authors():
 
 @app.route("/update-fav-author.json", methods=["POST"])
 def update_fav_author():
-    user_id = request.form.get("user_id")
+    user_id = session.get("user_id")
     author_id = request.form.get("author_id")
 
     if user_id and author_id:
@@ -584,7 +603,7 @@ def update_series():
 
 @app.route("/update-fav-series.json", methods=["POST"])
 def update_fav_series():
-    user_id = request.form.get("user_id")
+    user_id = session.get("user_id")
     series_id = request.form.get("series_id")
 
     if user_id and series_id:

@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block title %} Search By Title Results {% endblock %}
 {% block content %}
-<h1> Search Results for {{ query }} </h1>
+<h1 class="text-center"> Search Results for {{ query }} </h1>
 {% if books %}
+<div class="row justify-content-center">
 <form action="/book-series" method="POST">
 {% for book in books %}
 <div class="form-check">
@@ -12,9 +13,14 @@
 {% endfor %}
 <button type="submit" class="btn"> Search by Title </button>
 </form>
+</div>
 <br> <br> 
+<div class="row justify-content-center">
 <p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
+</div>
 {% else %}
+<div class="row justify-content-center">
 <p> No books were found. Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
+</div>
 {% endif %}
 {% endblock %}

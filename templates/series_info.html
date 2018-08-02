@@ -2,7 +2,15 @@
 {% block title %} {{ series.series_name }} {% endblock %}
 {% block content %}
 <h1 class="text-center"> {{ series.series_name }} </h1>
-<h2 class="text-center"> Favorited by {{ series.favorited_by|length }} people </h2>
+<h2 class="text-center">
+{% if series.favorited_by|length == 0 %}
+-Be the first to favorite this series-
+{% elif series.favorited_by|length == 1 %}
+-Favorited by 1 person-
+{% else %}
+-Favorited by {{ series.favorited_by|length }} people-
+{% endif %} 
+</h2>
 
 {% if info %}
 <p> ~Info provided by Goodreads ~ </p>
@@ -44,8 +52,7 @@
 // ... can it still be loaded in for the page?
 $("#fav-series").on("submit", function(evt){
     evt.preventDefault();
-    let formInputs = {"user_id": {{ session["user_id"] }},
-                   "series_id": {{ series.series_id}} };
+    let formInputs = {"series_id": {{ series.series_id }} };
 
     $.post("/update-fav-series.json", formInputs, function(results){
         $("#results").text(results.result);

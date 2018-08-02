@@ -8,25 +8,19 @@
     <title> {% block title %} {% endblock %} </title>
 </head>
 <body>
-<div class="text-center" id="banner"> <p id="banner-title">The Cool Project<p> </div>
+<div class="text-center" id="banner"> <p id="banner-title">Bibliofind<p> </div>
   <nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="#"> <img src="/static/img/navbar-book.png" height="30"> </a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
     <span class="navbar-toggler-icon"></span>
   </button>
       <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
+        <ul class="navbar-nav mx-auto">
           <li class="nav-item">
             <a class="nav-link" href="/"> Home </a>
           </li>
               <li class="nav-item">
             <a class="nav-link" href="/search"> Search </a>
           </li>
-          <li class:"nav-item">
-            <a class="nav-link" href="/adv-search"> Advanced Search </a>
-          </li>
-        </ul>
-        <ul class="navbar-nav ml-auto">
           {% if "user_id" in session %}
           <li class="nav-item">
             <a class="nav-link" href="/user/{{session['user_id']}}"> My Profile </a>

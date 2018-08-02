@@ -307,26 +307,26 @@ class FlaskNotLoggedInTests(TestCase):
         """ Tests to see if homepage renders properly"""
         result = self.client.get("/")
         self.assertEqual(result.status_code, 200)
-        self.assertIn(b"<h1> Project Homepage </h1>", result.data)
+        self.assertIn(b"Welcome to Bibliofind", result.data)
 
     def test_login_page(self):
         """ Tests to see if login page renders properly"""
         result = self.client.get("/login")
         self.assertEqual(result.status_code, 200)
-        self.assertIn(b"<h1> Login </h1>", result.data)
+        self.assertIn(b"Login", result.data)
 
     def test_logout(self):
         """Tests to see if user is redirected correctly if attempting to logout when not logged in"""
         result = self.client.get("/logout", follow_redirects=True)
         self.assertEqual(result.status_code, 200)
-        self.assertIn(b"Not logged in", result.data)
-        self.assertIn(b"<h1> Project Homepage </h1>", result.data)
+        self.assertIn(b"You can&#39;t log out", result.data)
+        self.assertIn(b"Bibliofind", result.data)
 
     def test_signup_page(self):
         """ Tests to see if signup page renders properly"""
         result = self.client.get("/sign-up")
         self.assertEqual(result.status_code, 200)
-        self.assertIn(b"<h1> Sign Up </h1>", result.data)
+        self.assertIn(b"Sign Up", result.data)
 
     def test_adv_search_page(self):
         """ Tests to see if advanced search page renders properly"""
@@ -435,14 +435,14 @@ class FlaskNotLoggedInDatabaseTests(TestCase):
         result = self.client.post("/sign-up", data={"email": "bob@bob.com"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Email already exists", result.data)
-        self.assertIn(b"<h1> Sign Up </h1>", result.data)
+        self.assertIn(b"Sign Up", result.data)
 
     def test_signup_error(self):
         """Tests to see if user is redirected properly if they do not sign up properly"""
         result = self.client.post("/sign-up", data={"email": "hello@world.com", "password": "yay"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Please input values", result.data)
-        self.assertIn(b"<h1> Sign Up </h1>", result.data)
+        self.assertIn(b"Sign Up", result.data)
 
     def test_signup_success(self):
         """ Tests to see if user can sign up for an account"""
@@ -472,14 +472,14 @@ class FlaskNotLoggedInDatabaseTests(TestCase):
         result = self.client.post("/login", data={"email": "bob@bob.com", "password": "meep"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Incorrect username/password", result.data)
-        self.assertIn(b"<h1> Login </h1>", result.data)
+        self.assertIn(b"Login", result.data)
 
     def test_user_login_email_failure(self):
         """Tests to see if user is redirected properly is email is incorrect"""
         result = self.client.post("/login", data={"email": "meep", "password": "meep"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Incorrect username/password", result.data)
-        self.assertIn(b"<h1> Login </h1>", result.data)
+        self.assertIn(b"Login", result.data)
 
     def test_search_page(self):
         """Tests to see if search page renders properly"""
@@ -604,7 +604,7 @@ class FlaskLoggedInTests(TestCase):
             self.assertNotIn("search_history", session)
             self.assertEqual(result.status_code, 200)
             self.assertIn(b"Logged out", result.data)
-            self.assertIn(b"<h1> Project Homepage </h1>", result.data)
+            self.assertIn(b"Bibliofind", result.data)
 
     def test_own_user_info_page(self):
         """Tests to see if, when logged in, you see more info on your user page"""

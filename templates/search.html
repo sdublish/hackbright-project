@@ -2,20 +2,29 @@
 {% block title %} Search {% endblock %}
 {% block content %}
 <h1 class='text-center'> Search </h1>
-<!-- Thing which would be cool to do: have people tell me if they're searching by author or series 
-    and modify the form to show the proper fields depending on user input -->
-<!-- Use the buttons or something, things which only allow one option -->
 <div class="row">
-    <div class="col-md-6">
-<form id="search" class="form-group">
+<div class="col-sm-6 text-center">
+<button class="btn" id="search-author"> Search by Author Name </button>
+</div>
+<div class="col-sm-6 text-center">
+<button class="btn" id="search-series"> Search by Series Name </button>
+</div>
+</div>
+<input type="hidden" id="search-history" value="">
+<div class="row justify-content-center">
+<form id="search" style="display:none">
+    <div class="form-group" id="author-field" style="display:none">
     <label for="author">Author</label>
     <input class="form-control" type="text" id="author"><br>
+</div>
+<div class="form-group" id="series-field" style="display:none">
     <label for="series">Series</label>
     <select class="form-control" id="series"> 
     <option selected value> -- select an option -- </option>{% for s in series %}
     <option value="{{s.series_name}}"> {{ s.series_name }} </option>
     {% endfor %}
-</select><br>
+</select>
+<p> Series not here? Try our <a href="/adv-search">advanced search function</a>. </p></div><br>
     Publishing Date Timeframe: 
 {% for tf, name in tfs.items()|sort %}
 {% if tf == 0 %}
@@ -30,38 +39,63 @@
 </div>
 {% endif %}
 {% endfor %}
-    <button type="submit" class="btn">Submit</button>
+    <button type="submit" class="btn">Search</button>
+    <p id="results"></p>
 </form>
 </div>
-<div class="col-md-6">
-    <h2 class="text-center"> Results </h2>
-<p id="results" class="text-center"> No results yet!</p>
+
+    
+<div class="row justify-content-center" id="results-headline" style="display:none">
+<h2> Results </h2>
+</div>
+
 <div class="row justify-content-center">
-
-<div class="col-lg-6 mx-auto" id="most-recent">
+<div class="col-lg-6 text-center" id="most-recent">
 </div>
 
-<div class="col-lg-6 mx-auto" id="act-results">
+<div class="col-lg-6 text-center" id="act-results">
 </div>
 
-</div>
-<!-- How to handle non-users sending email? If I want to> -->
 {% if "user_id" in session %}
-<button id="results-email" class="btn"> Send Results To Email </button>
+<br> <br>
+<button id="results-email" class="btn" style="display:none"> Send Results To Email </button>
 {% endif %}
-</div>
 </div>
 {% endblock %}
 
 
 {% block script %}
 <script>
+$("#search-author").on("click", function(){
+    $("#search-history").val("author");
+    $("#search").show();
+    $("#author-field").show();
+    $("#series-field").hide();
+    $("#series").val('');
+    $("#results").text("");
+});
+
+$("#search-series").on("click", function(){
+    $("#search-history").val("series");
+    $("#search").show();
+    $("#author-field").hide();
+    $("#series-field").show();
+    $("#author").val("");
+    $("#results").text("");
+});
+
+
 $("#results-email").on("click", function(){
-    // get results 
-    // send results to specified server route
-    $.post("/send-email-results", function(){
-        //pop alert saying email was sent
-        //as well as email address being used
+    let title;
+    if ($("#search-history").val() === 'author') {
+        title = $("#author").val(); 
+    } else if ($("#search-history").val() === 'series') {
+        title = $("#series").val();
+    }
+    title = "Bibliofind Search Results for " + title;
+    let formInputs = {"result": $("#act-results").html(), "title": title};
+    $.post("/email-info.json", formInputs, function(results){
+        alert(results["status"]);
     });
 
 });
@@ -76,7 +110,8 @@ $("#search").on("submit", function(evt){
     } else if (!author && !series) {
         $("#results").text("Please enter a value to submit!");
     } else{
-        $("#results").text("Searching for info...");
+        $("#results").text("Searching...")
+        $("#results-headline").show();
         let date = new Date();
         date = date.toDateString();
         let td = $("input[name=timeframe]:checked").val();
@@ -93,6 +128,7 @@ $("#search").on("submit", function(evt){
             $("#most-recent").html("<h4>Most Recent</h4><img height='200' src='" + result.most_recent[2] + "'> <p>" + mrPhrase + "</p>" )
             $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
 
+            $("#results-email").show();
             $("#results").text("");
 
         });
