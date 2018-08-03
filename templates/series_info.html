@@ -35,27 +35,25 @@
 
 {% if "user_id" in session %}
 <h2> Favorite this series! </h2>
+<!-- I could just make this a button, can't I? -->
 <form id="fav-series">
     <input type="submit" value="Favorite">
 </form>
 {% endif %}
 <br> <br> 
 
-<div id="results"> </div>
 {% endblock %}
 {% block script %}
 {% if "user_id" in session %}
 <script>
 // Apparently jinja in javascript is bad
-// Consider changing this into React, I guess?
-// But then I can't use jQuery
-// ... can it still be loaded in for the page?
+// Consider changing this
 $("#fav-series").on("submit", function(evt){
     evt.preventDefault();
     let formInputs = {"series_id": {{ series.series_id }} };
 
     $.post("/update-fav-series.json", formInputs, function(results){
-        $("#results").text(results.result);
+        alert(results.result);
     });
 });
 </script>

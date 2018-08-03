@@ -27,6 +27,7 @@
 
 
 <h2> Favorite this author! </h2>
+<!-- Can turn this into a button -->
 <form id="fav-author">
     <input type="submit" value="Favorite">
 </form>
@@ -54,14 +55,12 @@
 {% if "user_id" in session %}
 <script>
 // Apparently jinja in javascript is bad
-// Consider changing this into React, I guess?
-// But then I can't use jQuery
-// ... can it still be loaded in for the page?
+// Consider changing this 
 $("#fav-author").on("submit", function(evt){
     evt.preventDefault();
     let formInputs = {"author_id": {{ author.author_id }} };
     $.post("/update-fav-author.json", formInputs, function(results){
-        $("#results").text(results.result);
+        alert(results.result);
     });
 });
 </script>

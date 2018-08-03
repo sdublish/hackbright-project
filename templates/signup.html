@@ -27,8 +27,6 @@
 </div>
 <button type="submit" class="btn"> Sign Up </button>
 </form>
-<br>
-<p id="error"></p>
 {% endblock %}
 {% block script %}
 <script>
@@ -37,10 +35,8 @@ $("#sign-up").on("submit", function(evt){
     let pw2 = $("#password2").val();
     if (pw !== pw2){
         evt.preventDefault();
-        $("#error").text("Passwords do not match!");
-
+        alert("Passwords do not match. Please try again.");
     }
-
 });
 </script>
 {% endblock %}

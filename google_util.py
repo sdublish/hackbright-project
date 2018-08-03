@@ -7,6 +7,7 @@ google_books_key = os.environ["GOOGLE_BOOKS_API_KEY"]
 def get_pub_date_with_title(title):
     """ Gets the publication date for a book based off its title. Returns string
     with value error if there is an API error. """
+    # need to change how I handle this; what if the book has a title but no release date?
     payload = {"q": title,
                "langRestrict": "en",
                "printType": "books",

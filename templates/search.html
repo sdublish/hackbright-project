@@ -14,14 +14,16 @@
 <div class="row justify-content-center">
 <form id="search" style="display:none">
     <div class="form-group" id="author-field" style="display:none">
+        <br>
     <label for="author">Author</label>
     <input class="form-control" type="text" id="author"><br>
 </div>
 <div class="form-group" id="series-field" style="display:none">
-    <label for="series">Series</label>
-    <select class="form-control" id="series"> 
-    <option selected value> -- select an option -- </option>{% for s in series %}
-    <option value="{{s.series_name}}"> {{ s.series_name }} </option>
+    <br>
+    <label for="series">Series</label><br>
+    <select class="selectpicker" data-live-search="true"id="series" title="Pick a series!" data-size="5" data-width="fit"> 
+    {% for s in series %}
+    <option value="{{s.series_id}}"> {{ s.series_name }} </option>
     {% endfor %}
 </select>
 <p> Series not here? Try our <a href="/adv-search">advanced search function</a>. </p></div><br>
@@ -55,12 +57,20 @@
 
 <div class="col-lg-6 text-center" id="act-results">
 </div>
+</div>
 
 {% if "user_id" in session %}
 <br> <br>
+<div class="row">
+    <div class="col-6 text-center">
 <button id="results-email" class="btn" style="display:none"> Send Results To Email </button>
-{% endif %}
 </div>
+<div class="col-6 text-center">
+    <button class="btn" id="results-fav" style="display:none"></button>
+</div>
+</div>
+{% endif %}
+<br><br>
 {% endblock %}
 
 
@@ -71,7 +81,7 @@ $("#search-author").on("click", function(){
     $("#search").show();
     $("#author-field").show();
     $("#series-field").hide();
-    $("#series").val('');
+    $('.selectpicker').selectpicker('val', '');
     $("#results").text("");
 });
 
@@ -97,6 +107,30 @@ $("#results-email").on("click", function(){
     $.post("/email-info.json", formInputs, function(results){
         alert(results["status"]);
     });
+
+});
+
+$("#results-fav").on("click", function(){
+    if ($("#search-history").val() === 'series'){
+        let formInputs = {"series_id": $("#series").val()};
+
+        $.post("/update-fav-series.json", formInputs, function(results){
+            alert(results.result);
+        });
+    } else {
+        // get the name of the author
+        // strip of any whitetext?
+        // send this to a route
+        // check to see if author is in database
+        // ... which will be difficult, because of goodreads
+        // so things I can do:
+        // query goodreads to see if author name comes up with ID
+        // if no ID comes up, well, assume not in goodreads and handle from there
+        // if there is an ID, check to see if that id is already taken in the database
+        // if so, use that to add favorite and do all that check
+        // if 
+        console.log("Need to implement this");
+    }
 
 });
 
@@ -129,7 +163,16 @@ $("#search").on("submit", function(evt){
             $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
 
             $("#results-email").show();
+            let favButton;
+            if ($("#search-history").val() === 'author') {
+                favButton = "Add " + $("#author").val() + " to Favorites";
+            } else if ($("#search-history").val() === 'series') {
+                favButton = "Add " + $("#series option:selected").text() + " to Favorites";
+            }
+            $("#results-fav").text(favButton);
+            $("#results-fav").show();
             $("#results").text("");
+            $("html, body").animate({ scrollTop: $(document).height() }, "slow");
 
         });
     }

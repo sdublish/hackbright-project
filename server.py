@@ -72,7 +72,7 @@ def show_search():
 @app.route("/search.json", methods=["POST"])
 def search_json():
     author = request.form.get("author")
-    series_name = request.form.get("series")
+    series_id = request.form.get("series")
     timeframe = int(request.form.get("timeframe"))
     tf_str = timeframes[timeframe]
 
@@ -143,11 +143,11 @@ def search_json():
 
     else:  # if series is being searched
         # need to modify this to handle what would happen if it returns an error
-        series = Series.query.filter_by(series_name=series_name).first()
-        results = get_last_book_of_series(series_name, series.goodreads_id, py_date, td)
+        series = Series.query.get(series_id)
+        results = get_last_book_of_series(series.series_name, series.goodreads_id, py_date, td)
 
         if "search_history" in session:
-            search = (date, tf_str, series_name, results["most_recent"], results["results"])
+            search = (date, tf_str, series.series_name, results["most_recent"], results["results"])
             # this looks redundant, but if I try to modify the session value directly
             # it doesn't update, so it has to be like this
             s_history = session["search_history"]
@@ -364,7 +364,8 @@ def login():
     password = request.form.get("password")
     user = User.query.filter_by(email=email).first()
 
-    if user and check_password_hash(user.password, password):  # if the email and password match what's in the database
+    if user and check_password_hash(user.password, password):
+    # if the email and password match what's in the database
         session["user_id"] = user.user_id
         session["search_history"] = []
         flash("Successfully logged in!", "success")
@@ -482,7 +483,7 @@ def confirm_oauth():
 
 @app.route("/update-profile", methods=["POST"])
 def update_profile():
-    user_id = request.form.get("user_id")
+    user_id = session.get("user_id")
     description = request.form.get("description")
     fav_book = request.form.get("fav-book")
     des_pub = request.form.get("descr-publ")
@@ -514,9 +515,10 @@ def update_profile():
 
 @app.route("/update-authors", methods=["POST"])
 def update_authors():
-    user_id = request.form.get("user_id")
+    user_id = session.get("user_id")
     unfav_authors = request.form.getlist("author-remove")
     new_authors = request.form.get("new-author").strip().splitlines()
+    # might change how I flash messages
 
     if unfav_authors:
         for author_id in unfav_authors:
@@ -544,6 +546,7 @@ def update_authors():
                     flash("Could not find {}. Did you mean {}?".format(author_name, goodreads_info[1]), "info")
 
                 else:  # author is definitely NOT in database
+                    # need to handle what should happen if it's None
                     db.session.add(Author(author_name=goodreads_info[1], goodreads_id=goodreads_info[0]))
                     db.session.commit()
 
@@ -574,9 +577,10 @@ def update_fav_author():
 
 @app.route("/update-series", methods=["POST"])
 def update_series():
-    user_id = request.form.get("user_id")
+    user_id = session.get("user_id")
     unfav_series = request.form.getlist("series-remove")
     new_series = request.form.getlist("series-add")
+    # might change how I decide to flash messages
 
     if unfav_series:
         for series_id in unfav_series:
@@ -615,7 +619,7 @@ def update_fav_series():
             db.session.commit()
             return jsonify({"result": "New favorite series added!"})
     else:
-        return jsonify({"result": "Something went wrong"})
+        return jsonify({"result": "Something went wrong."})
 
 
 @app.route("/author/<author_id>")
@@ -629,6 +633,8 @@ def show_author_info(author_id):
         author_pg = wikipedia.page(author.author_name)
         # handle any exceptions up here.
         author_img = None
+        # could also save image url in database, so I only need to do this search once
+        # and then I could call wikipedia.summary instead of parsing the whole page every time
 
         for link in author_pg.images:
             if author.author_name.split(" ")[-1] in link and link.endswith("jpg"):
