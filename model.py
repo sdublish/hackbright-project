@@ -38,6 +38,7 @@ class Author(db.Model):
     author_id = db.Column(db.Integer, autoincrement=True, primary_key=True)
     author_name = db.Column(db.String(100), nullable=False)
     goodreads_id = db.Column(db.String(15), nullable=True)
+    author_img = db.Column(db.String(200), nullable=True)
 
     favorited_by = db.relationship("Fav_Author")
 

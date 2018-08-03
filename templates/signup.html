@@ -3,7 +3,6 @@
 
 {% block content %}
 <h1 class='text-center'> Sign Up </h1>
-
 <form action="/sign-up" id="sign-up" method="POST">
 <div class="form-group">
 <label for="fname"> First Name </label>
@@ -29,14 +28,5 @@
 </form>
 {% endblock %}
 {% block script %}
-<script>
-$("#sign-up").on("submit", function(evt){
-    let pw = $("#password").val();
-    let pw2 = $("#password2").val();
-    if (pw !== pw2){
-        evt.preventDefault();
-        alert("Passwords do not match. Please try again.");
-    }
-});
-</script>
+<script src="/static/js/signup.js"></script>
 {% endblock %}

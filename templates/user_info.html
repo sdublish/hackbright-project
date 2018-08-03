@@ -141,13 +141,13 @@ Display favorite authors publicly?
 <div id="update-fa-form" style="display:none">
 <h3> Update Favorite Authors </h3>
 <form action="/update-authors" method="POST">
-Check any authors you would like to remove: <br>
+Select any authors you would like to remove<br>
 <select name="author-remove" class="selectpicker" multiple data-selected-text-format="count" data-actions-box="true" data-size="5" title="Select an author to remove"
 data-width="fit">
 {% for fav_author in user.fav_authors %}
 <option value="{{ fav_author.author_id}}"> {{ fav_author.author.author_name }} </option> {% endfor %}</select><br><br>
 <div class="form-group">
-<label for="new-author">List the authors you would like to add. Each name should be on its own line. </label>
+<label for="new-author">List the authors you would like to add. Each name must be on its own line. </label>
 <textarea class="form-control" id="new-author" rows="3" name="new-author"></textarea>
 </div>
 <button type="submit" class="btn"> Update Authors </button>
@@ -159,7 +159,7 @@ data-width="fit">
 <div id="update-fs-form" style="display:none">
 <h3> Update Favorite Series </h3>
 <form action="/update-series" method="POST">
-Check any series you would like to remove<br>
+Select any series you would like to remove<br>
 <select name="series-remove" class="selectpicker" multiple data-selected-text-format="count" data-actions-box="true" data-size="5" title="Select a series to remove" data-width="fit">
 {% for fs in user.fav_series %}
 <option value="{{ fs.series_id}}">{{ fs.series.series_name }}</option>{% endfor %}
@@ -178,49 +178,5 @@ Please select which series you would like to add<br>
 {% endif %}
 {% endblock %}
 {% block script %}
-<script>
-$("#update-profile-btn").on("click", function(){
-    $("#update-profile-form").show();
-    $("#update-fs-form").hide();
-    $("#update-fa-form").hide();
-    $("html, body").animate({ scrollTop: $(document).height() }, "slow");
-
-});
-
-$("#update-fs-btn").on("click", function(){
-    $("#update-profile-form").hide();
-    $("#update-fs-form").show();
-    $("#update-fa-form").hide();
-    $("html, body").animate({ scrollTop: $(document).height() }, "slow");
-
-});
-
-$("#update-fa-btn").on("click", function(){
-    $("#update-profile-form").hide();
-    $("#update-fs-form").hide();
-    $("#update-fa-form").show();
-    $("html, body").animate({ scrollTop: $(document).height() }, "slow");
-
-});
-
-
-$("#search-history-display").on("click", function(){
-    $("#search-history-table").toggle();
-    $("#send-search-history").toggle();
-    if ($("#search-history-display").text() === 'Hide Search History'){
-        $("#search-history-display").text('Show Search History');
-    } else {
-        $("#search-history-display").text('Hide Search History');
-    }
-});
-
-$("#send-search-history").on("click", function(){
-    let title = 'Your Search History';
-    let searchHistory = $("#search-history").html();
-    let formInputs = {"title": title, "result": searchHistory};
-    $.post("/email-info.json", formInputs, function(results){
-        alert(results["status"]);
-    })
-})
-</script>
+<script src="/static/js/userInfo.js"></script>
 {% endblock %}

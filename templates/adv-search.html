@@ -1,26 +1,41 @@
 {% extends 'base.html' %}
 {% block title %} Advanced Search {% endblock %}
 {% block content %}
-<h1> Advanced Search </h1>
-<h3>Find a series by author:</h3>
+<h1 class='text-center'> Advanced Search </h1>
+<br>
+<div class="row">
+<div class="col-sm-6 text-center">
+<button class="btn" id="author-btn"> Find Series by Author Name </button>
+</div>
+<div class="col-sm-6 text-center">
+<button class="btn" id="title-btn"> Find Series by Book Title </button>
+</div>
+</div>
+<br> <br>
+<div class="row justify-content-center" id="author-search" style="display:none">
 <form action="/by-author" method="POST">
     <div class="form-group">
     <label for="author"> Author Name </label>
-    <input type="text" name="author" class="form-control" id="author" required>
+    <input type="text" name="author" aria-describedby="author-rule" class="form-control" id="author" required>
+    <!-- Might add regex here to validate submision -->
+    <small id="author-rule" class="form-text text-muted"> In order for this search to work properly, you must enter the full name of the author. Partial searches only work when searching by book title. </small>
     </div>
 
-    <button type="submit" class="btn"> Search by Author </button>
+    <button type="submit" class="btn">Search</button>
 </form>
-<br> <br> <br>
-
-<h3>Find a series by book:</h3>
+</div>
+<div class="row justify-content-center" id="title-search" style="display:none">
 <form action="/by-book" method="POST">
     <div class="form-group">
          <label for="title"> Book Title </label>
      <input type="text" name="title" class="form-control" id="title"required>
    
     </div>
-    <button type="submit" class="btn"> Search by Title </button>
+    <button type="submit" class="btn"> Search</button>
 </form>
+</div>
 
+{% endblock %}
+{% block script %}
+<script src="/static/js/advSearch.js"></script> 
 {% endblock %}

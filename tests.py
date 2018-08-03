@@ -332,7 +332,7 @@ class FlaskNotLoggedInTests(TestCase):
         """ Tests to see if advanced search page renders properly"""
         result = self.client.get("/adv-search")
         self.assertEqual(result.status_code, 200)
-        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
+        self.assertIn(b"Advanced Search", result.data)
 
     def test_book_search_error(self):
         """ Tests to see if, if API does not send a proper request, searching by book goes back to advanced search page"""
@@ -341,7 +341,7 @@ class FlaskNotLoggedInTests(TestCase):
             result = self.client.post("/by-book", data={"title": "Failure"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Something went wrong", result.data)
-        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
+        self.assertIn(b"Advanced Search", result.data)
 
     def test_book_search_no_books(self):
         """Tests to see if by-book renders properly if no books are provided from search"""
@@ -377,7 +377,7 @@ class FlaskNotLoggedInTests(TestCase):
         result = self.client.post("/book-series", data={"book": "|| Failure"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Something went wrong", result.data)
-        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
+        self.assertIn(b"Advanced Search", result.data)
 
     def test_book_series_error(self):
         """Tests to see if book-series redirects properly if error occurs in API call"""
@@ -386,7 +386,7 @@ class FlaskNotLoggedInTests(TestCase):
             result = self.client.post("/book-series", data={"book": "1|| Failure"}, follow_redirects=True)
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Something went wrong", result.data)
-        self.assertIn(b"<h1> Advanced Search </h1>", result.data)
+        self.assertIn(b"Advanced Search", result.data)
 
     def test_book_series_no_series(self):
         """ Tests to see if book-series shows all series related to book if API call is successful"""
