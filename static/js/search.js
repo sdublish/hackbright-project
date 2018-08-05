@@ -96,16 +96,6 @@ $("#results-fav").on("click", function(){
             }
 
         });
-        // strip of any whitetext?
-        // send this to a route
-        // check to see if author is in database
-        // ... which will be difficult, because of goodreads
-        // so things I can do:
-        // query goodreads to see if author name comes up with ID
-        // if no ID comes up, well, assume not in goodreads and handle from there
-        // if there is an ID, check to see if that id is already taken in the database
-        // if so, use that to add favorite and do all that check
-        // if 
     }
 
 });

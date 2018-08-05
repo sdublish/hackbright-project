@@ -363,6 +363,7 @@ class FlaskNotLoggedInTests(TestCase):
             <best_book>
             <title>An Answer</title>
             <author><name>Jane Doe</name></author>
+            <image_url>animage.com</image_url>
             </best_book>
             </work>
             </results></search></Response>
@@ -371,6 +372,7 @@ class FlaskNotLoggedInTests(TestCase):
         self.assertEqual(result.status_code, 200)
         self.assertIn(b"Search Results for An Answer", result.data)
         self.assertIn(b"An Answer by Jane Doe", result.data)
+        self.assertIn(b"animage.com", result.data)
 
     def test_book_series_no_id(self):
         """ Tests to see if book-series redirects properly if no book_id is provided"""

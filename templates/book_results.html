@@ -4,15 +4,13 @@
 <h1 class="text-center"> Search Results for {{ query }} </h1>
 {% if books %}
 <p class="text-center"> Click on the book you want to search! </p> <br>
-<div class="row justify-content-center book-results">
+<div class="row justify-content-center">
 <form action="/book-series" method="POST">
 {% for n in range(5) %}
 <div class="row">
 {% for book in books[(n*4):(4+4*n)] %}
 <div class="col-3 text-center">
 <div class="form-check">
-<!-- <input type="radio" class="form-check-input" name="book" value="{{ book[2] }} || {{ book [0] }}" id="{{ book[2] }}"> 
-<label class="form-check-label" for="{{ book[2] }}">{{ book[0] }} by {{ book[1] }}</label> -->
 <label> 
     <input type="radio" class="form-check-input" name="book" value="{{ book[2] }} || {{ book [0] }}" id="{{ book[2] }}" style="display:none"> 
     <img src="{{book[3]}}">

@@ -16,6 +16,7 @@ label > input {
 label > input + img { /* IMAGE STYLES */
   cursor: pointer;
   border: 7px solid transparent;
+  border-radius: 10px;
 }
 
 label > input:checked + img { /* (RADIO CHECKED) IMAGE STYLES */

@@ -12,6 +12,15 @@
 {% endif %} 
 </h2>
 
+{% if "user_id" in session %}
+<h2> Favorite this series! </h2>
+<form id="fav-series">
+    <input type="hidden" value="{{series.series_id}}" id="series-id">
+    <button type="submit" class="btn">Favorite Me!</button>
+</form>
+{% endif %}
+<br> <br> 
+
 {% if info %}
 <p> ~Info provided by Goodreads ~ </p>
 {% if info.description %}
@@ -37,15 +46,6 @@
 {% else %}
 <p> Could not get info from Goodreads. Please try again. </p>
 {% endif %}
-
-{% if "user_id" in session %}
-<h2> Favorite this series! </h2>
-<form id="fav-series">
-    <input type="hidden" value="{{series.series_id}}" id="series-id">
-    <button type="submit" class="btn">Favorite Me!</button>
-</form>
-{% endif %}
-<br> <br> 
 
 {% endblock %}
 {% block script %}

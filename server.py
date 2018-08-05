@@ -176,7 +176,7 @@ def email_info_to_user():
     if user:
         msg = Message(subject=title, html=result, recipients=[user.email])
         mail.send(msg)
-        return jsonify({"status": "Email sent! Look for bibliofindapp@gmail.com in your inbox."})
+        return jsonify({"status": "Email sent! Look for {} in your inbox.".format(os.environ["APP_EMAIL"])})
 
     else:
         return jsonify({"status": "An error occurred. Make sure you're signed in."})
