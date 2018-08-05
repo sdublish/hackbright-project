@@ -20,14 +20,19 @@
 <p> No description provided. </p>
 {% endif %}
 <p> Number of works: {{ info.length }} </p>
-<!-- Add a check to see if there are any works to show off -->
-<p> Works in series: </p>
-<ul> {% for work in info.works %}
-    <img src="{{work[3]}}">
-    <li> {{ work[0] }} by {{ work[1] }}, published {{ work[2] }} </li>
-{% endfor %}
-</ul>
 
+<h3 class="text-center">Works in series</h3> <br>
+{% for n in range( (info.works|length //4) + 1) %}
+<div class="row">
+    {% for work in info.works[(n*4):(4+4*n)] %}
+    <div class="col-3 text-center">
+        <img src="{{work[3]}}">
+        <p> {{ work[0] }} by {{ work[1] }}, published {{ work[2] }} </p>
+    </div>
+    {% endfor %}
+</div>
+<br>
+{% endfor %}
 
 {% else %}
 <p> Could not get info from Goodreads. Please try again. </p>

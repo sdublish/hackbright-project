@@ -8,3 +8,17 @@
     padding:23px;
     font-size: xx-large;
 }
+
+label > input { 
+  position: absolute; /* Remove input from document flow */
+}
+
+label > input + img { /* IMAGE STYLES */
+  cursor: pointer;
+  border: 7px solid transparent;
+}
+
+label > input:checked + img { /* (RADIO CHECKED) IMAGE STYLES */
+  border: 7px solid green;
+  border-radius: 10px;
+}

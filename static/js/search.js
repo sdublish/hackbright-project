@@ -7,7 +7,9 @@ $("#search-author").on("click", function(){
     $("#search-history").val("author");
     $("#search").show();
     $("#author-field").show();
+    $("#fav-author-field").show();
     $("#series-field").hide();
+    $("#fav-series-field").hide();
     $('.selectpicker').selectpicker('val', '');
     $("#results").text("");
 });
@@ -17,9 +19,45 @@ $("#search-series").on("click", function(){
     $("#search-history").val("series");
     $("#search").show();
     $("#author-field").hide();
+    $("#fav-author-field").hide();
     $("#series-field").show();
+    $("#fav-series-field").show();
     $("#author").val("");
     $("#results").text("");
+});
+
+// when user changes series in series field, and it does not match what is in favorite series
+// sets value of favorite series to empty string
+$("#series").on("changed.bs.select", function(e, clickedIndex, isSelected, previousValue){
+    if ($(this).find("option").eq(clickedIndex).val() !== $("#fav-series").val()){
+        $("#fav-series").val("");
+        $(".selectpicker").selectpicker('render');
+    }
+});
+
+
+// when user picks favorite series, sets value in series field to match
+$("#fav-series").on("changed.bs.select", function(e, clickedIndex, isSelected, previousValue){
+    let series = $(this).find('option').eq(clickedIndex).val();
+    $("#series").val(series);
+    $(".selectpicker").selectpicker('render');
+
+});
+
+
+// when user changes author in author field, and it does not match what is in favorite author
+// sets value of favorite author to empty string
+$("#author").on("change", function(){
+    if ( $("#author").val() !== $("#fav-auth").val()){
+        $("#fav-auth").val("");
+        $(".selectpicker").selectpicker('render');
+    }
+})
+
+// when user picks favorite author, sets value in author field to match
+$("#fav-auth").on("changed.bs.select", function(e, clickedIndex, isSelected, previousValue){
+    let author = $(this).find('option').eq(clickedIndex).val();
+    $("#author").val(author);
 });
 
 
@@ -48,7 +86,16 @@ $("#results-fav").on("click", function(){
             alert(results.result);
         });
     } else {
-        // get the name of the author
+        let formInputs1 = {"author" :$("#author").val()};
+        $.post("/get-author-id.json", formInputs1, function(results){
+            if (results["auth_status"] === "ok"){
+                let formInputs2 = {"author_id": results["id"]}
+                $.post("/update-fav-author.json", formInputs2, function(result){
+                    alert(result.result);
+                });
+            }
+
+        });
         // strip of any whitetext?
         // send this to a route
         // check to see if author is in database
@@ -59,7 +106,6 @@ $("#results-fav").on("click", function(){
         // if there is an ID, check to see if that id is already taken in the database
         // if so, use that to add favorite and do all that check
         // if 
-        console.log("Need to implement this");
     }
 
 });

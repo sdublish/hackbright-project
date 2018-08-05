@@ -66,7 +66,16 @@ def show_homepage():
 def show_search():
     """ Renders search page """
     series = Series.query.all()
-    return render_template("search.html", series=series, tfs=timeframes)
+    fav_auth = None
+    fav_series = None
+
+    user_id = session.get("user_id")
+    if user_id:
+        user = User.query.get(user_id)
+        fav_auth = user.fav_authors
+        fav_series = user.fav_series
+
+    return render_template("search.html", series=series, tfs=timeframes, fav_auths=fav_auth, fav_series=fav_series)
 
 
 @app.route("/search.json", methods=["POST"])
@@ -158,8 +167,8 @@ def search_json():
 
 
 @app.route("/email-info.json", methods=["POST"])
-def email_search_results():
-    """Sends email to user if logged in. Returns json indicating if email was sent successfully"""
+def email_info_to_user():
+    """Sends email to user if user logged in. Returns json indicating if email was sent successfully"""
     user = User.query.get(session.get("user_id"))
     result = request.form.get("result")
     title = request.form.get("title")
@@ -275,8 +284,9 @@ def search_by_book():
             book_title = book.find("best_book").find("title").text.strip()
             book_author = book.find("best_book").find("author").find("name").text.strip()
             book_id = book.find("id").text
+            book_cover = book.find("best_book").find("image_url").text
 
-            book_info.append((book_title, book_author, book_id))
+            book_info.append((book_title, book_author, book_id, book_cover))
 
         return render_template("book_results.html", query=title, books=book_info)
 
@@ -575,6 +585,33 @@ def update_fav_author():
         return jsonify({"result": "Something went wrong."})
 
 
+@app.route("/get-author-id.json", methods=["POST"])
+def get_author_id():
+    a_name = request.form.get("author")
+    author = Author.query.filter_by(author_name=a_name).first()
+
+    if author:  # if the author is in the database
+        return jsonify({"auth_status": "ok", "id": author.author_id})
+
+    else:  # author is not in database under spelling provided
+        goodreads_id, goodreads_name = get_author_goodreads_info(a_name)
+
+        if goodreads_id:  # if this author is in goodreads
+            author2 = Author.query.filter_by(goodreads_id=goodreads_id).first()
+
+            if author2:  # if the author is already in the database, but under a different spelling
+                return jsonify({"auth_status": "ok", "id": author2.author_id})
+
+            else:  # if author is not in database
+                db.session.add(Author(author_name=goodreads_name, goodreads_id=goodreads_id))
+                db.session.commit()
+                new_auth = Author.query.filter_by(goodreads_id=goodreads_id)
+                return jsonify({"auth_status": "ok", "id": new_auth.author_id})
+
+        else:  # author is not in goodreads
+            pass
+
+
 @app.route("/update-series", methods=["POST"])
 def update_series():
     user_id = session.get("user_id")
@@ -630,18 +667,27 @@ def show_author_info(author_id):
     if author:
         series = None
 
-        author_pg = wikipedia.page(author.author_name)
-        # handle any exceptions up here.
-        author_img = None
-        # could also save image url in database, so I only need to do this search once
-        # and then I could call wikipedia.summary instead of parsing the whole page every time
+        if author.author_img:
+            author_info = wikipedia.summary(author.author_name)
+            author_info.replace("\n", " ")
+            author_img = author.author_img
 
-        for link in author_pg.images:
-            if author.author_name.split(" ")[-1] in link and link.endswith("jpg"):
-                author_img = link
+        else:
 
-        author_info = author_pg.summary
-        author_info.replace("\n", " ")
+            author_pg = wikipedia.page(author.author_name)
+            # handle any exceptions up here.
+            author_img = None
+
+            for link in author_pg.images:
+                if author.author_name.split(" ")[-1] in link and link.endswith("jpg"):
+                    author_img = link
+
+            if author_img:
+                author.author_img = author_img
+                db.session.commit()
+
+            author_info = author_pg.summary
+            author_info.replace("\n", " ")
 
         if author.goodreads_id is None:
             possible_id = get_author_goodreads_info(author.author_name)[0]
