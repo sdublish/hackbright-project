@@ -99,10 +99,6 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
         title = 'untitled'
         published = None
 
-        # i am pretty sure I can write this while loop prettier
-        # also, may want to change it so it just looks for a publication date
-        # basically I need to hash out these conditions
-
         while ('untitled' in title.lower() and published is None) and series_length >= "1":
             work = by_user_position.get(series_length)
 
@@ -120,8 +116,10 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
         if published is None:
             published = get_pub_date_with_title(title)
 
-        most_recent = (title, published, cover)
-        result = most_recent
+        if published == "error":
+            return {"status": "error"}
+
+        result = (title, published, cover)
 
         pdate = convert_string_to_datetime(published)
 
@@ -155,7 +153,7 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
             if series_length == "0":
                 result = (None, None, "http://sendmeglobal.net/images/404.png")
 
-        return {'status': 'ok', 'most_recent': most_recent, 'results': result}
+        return {'status': 'ok', 'results': result}
 
     else:
         return {'status': 'error'}
@@ -172,7 +170,6 @@ def get_info_for_work(work):
     p_month = work.find("work").find("original_publication_month").text
     p_date = work.find("work").find("original_publication_day").text
 
-    # if statements can definitely be cleaned up
     if p_year and p_month and p_date:
         pub = "{}-{}-{}".format(p_year, p_month.zfill(2), p_date.zfill(2))
 

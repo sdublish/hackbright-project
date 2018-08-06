@@ -38,18 +38,22 @@
     <h2 class="text-center"> Results </h2>
 </div>
 <div class="row justify-content-center">
-
-<div class="col-lg-6 text-center" id="most-recent">
+    <div class="col-12 text-center" id="act-results">
+    </div>
 </div>
 
-<div class="col-lg-6 text-center" id="act-results">
-</div>
 {% if "user_id" in session %}
 <br> <br>
+<div class="row">
+    <div class="col-6 text-center">
 <button id="results-email" class="btn" style="display:none"> Send Results To Email </button>
-{% endif %}
-
 </div>
+<div class="col-6 text-center">
+    <button class="btn" id="results-fav" style="display:none"></button>
+</div>
+</div>
+{% endif %}
+<br><br>
 {% else %}
 <div class="row justify-content-center">
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>

@@ -273,7 +273,7 @@ class GoodreadsUtilTests(TestCase):
             <original_publication_day>9</original_publication_day>
             </work></series_work></series_works></series></response>"""
             exp_result = ('Test 2', '2016-03-09', 'url')
-            exp_dict = {'status': 'ok', 'most_recent': exp_result, 'results': exp_result}
+            exp_dict = {'status': 'ok', 'results': exp_result}
             self.assertEqual(exp_dict, get_last_book_of_series('series', '1', 'date', 0))
 
     def test_get_last_book_of_series_not_in_range(self):
@@ -291,9 +291,8 @@ class GoodreadsUtilTests(TestCase):
             <original_publication_month>3</original_publication_month>
             <original_publication_day>9</original_publication_day>
             </work></series_work></series_works></series></response>"""
-            exp_mr = ('Test 2', '2016-03-09', 'url')
             exp_r = (None, None, "http://sendmeglobal.net/images/404.png")
-            self.assertEqual({'status': 'ok', 'most_recent': exp_mr, "results": exp_r}, get_last_book_of_series('series', 1, datetime.now(), timedelta(days=183)))
+            self.assertEqual({'status': 'ok', "results": exp_r}, get_last_book_of_series('series', 1, datetime.now(), timedelta(days=183)))
 
 
 class FlaskNotLoggedInTests(TestCase):

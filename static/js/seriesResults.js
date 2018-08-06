@@ -4,18 +4,27 @@
 
 function showResults(result){
     // Displays results returned from AJAX call below
-    let mrPhrase = `Most recently released: ${result.most_recent[0]}, publication date: ${result.most_recent[1]}`;
-    let rPhrase;
-    if (result.results[0] === null) {
-    rPhrase = "No books found in timeframe.";
+    if (result["status"] === "error"){
+        alert("An error occurred. Please try again");
     } else {
-    rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
+        let rPhrase;
+        if (result["results"][0] === null) {
+            rPhrase = "No books found in timeframe.";
+        } else {
+            rPhrase = `Results: ${result["results"][0]}, publication date: ${result["results"][1]}.`;
+        }
+
+        let seriesID = $('input[name=series]:checked').val();
+        let IDAsString = `label[for=${seriesID}]`;
+        let seriesName = $(IDAsString).text();
+
+        let favButton = "Add " + seriesName + " to Favorites";
+        $("#results-fav").text(favButton);
+        $("#results-fav").show();
+
+        $("#act-results").html("<img height='200' src='" + result["results"][2] + "'> <p>" + rPhrase + "</p>" );
+        $("#results-email").show();   
     }
-
-    $("#most-recent").html("<h4>Most Recent</h4><img height='200' src='" + result.most_recent[2] + "'> <p>" + mrPhrase + "</p>" );
-    $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" );
-    $("#results-email").show();
-
 }
 
 function searchSeries(evt){
@@ -45,6 +54,25 @@ $("#results-email").on("click", function(){
     let formInputs = {"result": $("#act-results").html(), "title": title};
     $.post("/email-info.json", formInputs, function(results){
         alert(results["status"]);
+    });
+
+});
+
+// on click, adds series to favorites
+$("#results-fav").on("click", function(){
+    let seriesID = $('input[name=series]:checked').val();
+    let IDAsString = `label[for=${seriesID}]`;
+    let seriesName = $(IDAsString).text();
+    let formInput1 = {"series_name": seriesName};
+    $.post("/get-series-id.json", formInput1, function(result1){
+        if (result1["status"] !== "ok"){
+            alert(result1["status"]);
+        } else {
+            let formInput2 = {"series_id": result1["id"]};
+            $.post("/update-fav-series.json", formInput2, function(result2){
+                alert(result2["status"]);
+            });
+        }
     });
 
 });

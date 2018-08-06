@@ -80,6 +80,7 @@ def show_search():
 
 @app.route("/search.json", methods=["POST"])
 def search_json():
+    """ Returns search results based off author or series inputted"""
     author = request.form.get("author")
     series_id = request.form.get("series")
     timeframe = int(request.form.get("timeframe"))
@@ -90,7 +91,7 @@ def search_json():
     py_date = datetime.strptime(date_str, "%b %d %Y")
     td = timedelta(days=timeframe)
 
-    if author:  # considering moving this to google_util, even though functionality isn't reused
+    if author:
         payload = {"q": "inauthor:" + author,
                    "langRestrict": "en",
                    "orderBy": "newest",
@@ -102,7 +103,6 @@ def search_json():
 
         if response.status_code == 200:
             results = response.json()
-            # can clean up the code here
             next_book = results["items"][0]["volumeInfo"]
             next_book_cover = no_cover_img
 
@@ -112,12 +112,13 @@ def search_json():
             next_book_id = results["items"][0]["id"]
 
             published_date = get_pub_date_with_book_id(next_book_id)
-            # if error, return jsonify({status:error})
-            # what if this returns an error? What do I want to do?
+
+            if published_date == "error":
+                return jsonify({"status": "error"})
+
             pdate = convert_string_to_datetime(published_date)
 
-            most_recent = (next_book["title"], published_date, next_book_cover)
-            result = most_recent
+            result = (next_book["title"], published_date, next_book_cover)
 
             if td and not (py_date <= pdate <= py_date + td):
                 if pdate < py_date:
@@ -139,24 +140,23 @@ def search_json():
                             break
 
             if "search_history" in session:
-                search = (date, tf_str, author, most_recent, result)
+                search = (date, tf_str, author, result)
                 # this looks redundant, but if I try to modify the session value directly
                 # it doesn't update, so it has to be like this
                 s_history = session["search_history"]
                 s_history.append(search)
                 session["search_history"] = s_history
 
-            return jsonify({"results": result, "most_recent": most_recent})
+            return jsonify({"status": "ok", "results": result})
 
-        # need to figure out how I want to handle if the API throws an error
+        return jsonify({"status": "error"})
 
     else:  # if series is being searched
-        # need to modify this to handle what would happen if it returns an error
         series = Series.query.get(series_id)
         results = get_last_book_of_series(series.series_name, series.goodreads_id, py_date, td)
 
         if "search_history" in session:
-            search = (date, tf_str, series.series_name, results["most_recent"], results["results"])
+            search = (date, tf_str, series.series_name, results["results"])
             # this looks redundant, but if I try to modify the session value directly
             # it doesn't update, so it has to be like this
             s_history = session["search_history"]
@@ -190,6 +190,7 @@ def show_adv_search():
 
 @app.route("/by-author", methods=["POST"])
 def search_by_author():
+    """ Returns list of series associated with author"""
     author_name = request.form.get("author")
     author = Author.query.filter_by(author_name=author_name).first()
 
@@ -226,11 +227,10 @@ def search_by_author():
                 return redirect("/adv-search")
 
     else:  # author is not in database
-        # can you unpack a tuple? Might make sense here
-        actual_info = get_author_goodreads_info(author_name)
+        possible_id, possible_name = get_author_goodreads_info(author_name)
 
-        if actual_info[0]:
-            possible_author = Author.query.filter_by(goodreads_id=actual_info[0]).first()
+        if possible_id:
+            possible_author = Author.query.filter_by(goodreads_id=possible_id).first()
 
             if possible_author:  # if there was a typo that goodreads handled
                 series_info = get_series_list_by_author(possible_author.goodreads_id)
@@ -245,15 +245,15 @@ def search_by_author():
                     return redirect("/adv-search")
 
             else:  # author is not in database
-                db.session.add(Author(author_name=actual_info[1], goodreads_id=actual_info[0]))
+                db.session.add(Author(author_name=possible_name, goodreads_id=possible_id))
                 db.session.commit()
-                series_info = get_series_list_by_author(actual_info[0])
+                series_info = get_series_list_by_author(possible_id)
 
                 if series_info is not None:  # if we get results
-                    if author_name != actual_info[1]:
-                        flash("Showing results for {} instead of {}".format(actual_info[1], author_name), "info")
+                    if author_name != possible_name:
+                        flash("Showing results for {} instead of {}".format(possible_name, author_name), "info")
 
-                    title = "Series by {}".format(actual_info[1])
+                    title = "Series by {}".format(possible_name)
                     return render_template("series_results.html", series=series_info, title=title, tfs=timeframes)
 
                 else:  # did not get results/returned None
@@ -267,6 +267,7 @@ def search_by_author():
 
 @app.route("/by-book", methods=["POST"])
 def search_by_book():
+    """ Returns search results based off book title"""
     title = request.form.get("title")
 
     payload = {"q": title, "key": goodreads_key}
@@ -297,7 +298,7 @@ def search_by_book():
 
 @app.route("/book-series", methods=["POST"])
 def series_by_books():
-    # could definitely do unpacking here, if I wanted to
+    """ Shows series linked to book """
     book_info = request.form.get("book").split("||")
     book_id = book_info[0].strip()
     book_name = book_info[1].strip()
@@ -330,6 +331,7 @@ def series_by_books():
 
 @app.route("/series-result.json", methods=["POST"])
 def show_series_results():
+    """ Returns last book of series """
     series_id = request.form.get("id")
     series_name = request.form.get("name")
 
@@ -345,7 +347,7 @@ def show_series_results():
         results = get_last_book_of_series(series_name, series_id, py_date, td)
 
         if "search_history" in session:
-            search = (date, tf_str, series_name, results["most_recent"], results["results"])
+            search = (date, tf_str, series_name, results["results"])
             # this looks redundant, but if I try to modify the session value directly
             # it doesn't update, so it has to be like this
             s_history = session["search_history"]
@@ -356,6 +358,7 @@ def show_series_results():
             db.session.add(Series(goodreads_id=series_id, series_name=series_name))
             db.session.commit()
 
+        print(results)
         return jsonify(results)
 
     else:
@@ -370,6 +373,7 @@ def show_login():
 
 @app.route("/login", methods=["POST"])
 def login():
+    """ Logs in user if information matches what is in database """
     email = request.form.get("email")
     password = request.form.get("password")
     user = User.query.filter_by(email=email).first()
@@ -408,6 +412,7 @@ def show_signup():
 
 @app.route("/sign-up", methods=["POST"])
 def signup():
+    """ Signs up user if information is entered correctly """
     email = request.form.get("email")
 
     if User.query.filter_by(email=email).first():  # if email exists in database
@@ -419,7 +424,6 @@ def signup():
         lname = request.form.get("lname")
         password = request.form.get("password")
 
-        # is there a way to prevent a user from signing up as a string of spaces??
         if fname and lname and email and password:
             db.session.add(User(email=email, fname=fname, lname=lname,
                                 password=generate_password_hash(password)))
@@ -447,7 +451,6 @@ def show_profile(user_id):
     user = User.query.get(user_id)
 
     if user:
-        # you know, I could probably change this query so it only returns the series_id...
         fav_series_id = [s.series_id for s in Fav_Series.query.filter_by(user_id=user_id).all()]
         series = Series.query.filter(db.not_(Series.series_id.in_(fav_series_id))).all()
         return render_template("user_info.html", user=user, series=series)
@@ -493,6 +496,7 @@ def confirm_oauth():
 
 @app.route("/update-profile", methods=["POST"])
 def update_profile():
+    """ Updates user profile based off what was inputted """
     user_id = session.get("user_id")
     description = request.form.get("description")
     fav_book = request.form.get("fav-book")
@@ -525,44 +529,61 @@ def update_profile():
 
 @app.route("/update-authors", methods=["POST"])
 def update_authors():
+    """ Updates who is the user's favorites authors """
     user_id = session.get("user_id")
     unfav_authors = request.form.getlist("author-remove")
     new_authors = request.form.get("new-author").strip().splitlines()
     # might change how I flash messages
 
     if unfav_authors:
+        auth_names = "Successfully removed:"
         for author_id in unfav_authors:
             author = Fav_Author.query.filter_by(author_id=author_id, user_id=user_id).first()
+
             if author:
                 db.session.delete(author)
-                flash("Successfully removed {}".format(author.author.author_name), "success")
+                auth_names += " {},".format(author.author.author_name)
+
+        flash(auth_names.rstrip(","), "success")
 
     if new_authors:
+        auth_fav = ""
+        auth_add = ""
+
         for author_name in new_authors:
             author = Author.query.filter_by(author_name=author_name).first()
 
             if author:  # if author in database
                 if Fav_Author.query.filter_by(author_id=author.author_id, user_id=user_id).first():
-                    flash("You already liked {}!".format(author.author_name), "warning")
+                    auth_fav += " {},".format(author.author_name)
 
                 else:
                     db.session.add(Fav_Author(author_id=author.author_id, user_id=user_id))
-                    flash("Successfully added {}".format(author_name), "success")
-            else:  # if author is NOT in database
-                # unpack data?
-                goodreads_info = get_author_goodreads_info(author_name)
+                    auth_add += " {},".format(author_name)
 
-                if author_name != goodreads_info[1]:  # name entered and name returned from goodreads do not match (indicates typo)
-                    flash("Could not find {}. Did you mean {}?".format(author_name, goodreads_info[1]), "info")
+            else:  # if author is NOT in database
+                gr_id, gr_name = get_author_goodreads_info(author_name)
+
+                if author_name != gr_name:  # name entered and name returned from goodreads do not match (indicates typo)
+                    flash("Could not find {}. Did you mean {}?".format(author_name, gr_name), "info")
 
                 else:  # author is definitely NOT in database
-                    # need to handle what should happen if it's None
-                    db.session.add(Author(author_name=goodreads_info[1], goodreads_id=goodreads_info[0]))
-                    db.session.commit()
+                    if gr_id:
+                        db.session.add(Author(author_name=gr_name, goodreads_id=gr_id))
+                        db.session.commit()
 
-                    author_id = Author.query.filter_by(author_name=author_name).first().author_id
-                    db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
-                    flash("Successfully added {}".format(author_name), "success")
+                        author_id = Author.query.filter_by(author_name=author_name).first().author_id
+                        db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
+                        auth_add += " {},".format(author_name)
+
+                    else:
+                        flash("{}} is not in Goodreads, so cannot add to favorites. Sorry!".format(author_name), "warning")
+
+        if auth_fav:
+            flash("You already liked:{}".format(auth_fav.rstrip(",")), "warning")
+
+        if auth_add:
+            flash("Successfully added:{}".format(auth_add.rstrip(",")), "success")
 
     db.session.commit()
     return redirect("/user/{}".format(user_id))
@@ -570,6 +591,7 @@ def update_authors():
 
 @app.route("/update-fav-author.json", methods=["POST"])
 def update_fav_author():
+    """ Adds author to user's list of favorite authors """
     user_id = session.get("user_id")
     author_id = request.form.get("author_id")
 
@@ -587,6 +609,7 @@ def update_fav_author():
 
 @app.route("/get-author-id.json", methods=["POST"])
 def get_author_id():
+    """ Returns author id for author name inputted """
     a_name = request.form.get("author")
     author = Author.query.filter_by(author_name=a_name).first()
 
@@ -609,41 +632,66 @@ def get_author_id():
                 return jsonify({"auth_status": "ok", "id": new_auth.author_id})
 
         else:  # author is not in goodreads
-            pass
+            return jsonify({"auth_status": "error"})
 
 
 @app.route("/update-series", methods=["POST"])
 def update_series():
+    """ Updates list of favorite series for user """
     user_id = session.get("user_id")
     unfav_series = request.form.getlist("series-remove")
     new_series = request.form.getlist("series-add")
-    # might change how I decide to flash messages
 
     if unfav_series:
+        series_unfav = "Successfully removed:"
+
         for series_id in unfav_series:
             series = Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first()
             if series:  # check to see if in database... useful just-in-case check, but not really needed
                 db.session.delete(series)
-                flash("Successfully removed {}".format(series.series.series_name), "success")
+                series_unfav += " {},".format(series.series.series_name)
+
+        flash(series_unfav.rstrip(","), "success")
 
     if new_series:
+        series_fav = ""
+        series_add = ""
+
         for series_id in new_series:
             series = Series.query.get(series_id)
+
             if Fav_Series.query.filter_by(series_id=series_id, user_id=user_id).first():
-                flash("You already liked {}!".format(series.series_name), "warning")
+                series_fav += " {},".format(series.series_name)
 
             else:
                 db.session.add(Fav_Series(series_id=series_id, user_id=user_id))
-                flash("Successfully added {}".format(series.series_name), "success")
+                series_add += " {},".format(series.series_name)
 
-    # maybe figure out I want to handle if the series check fails later...
+        if series_fav:
+            flash("You already liked:{}".format(series_fav.rstrip(",")), "warning")
+
+        if series_add:
+            flash("Successfullly added:{}".format(series_add.rstrip(",")), "success")
 
     db.session.commit()
     return redirect("/user/{}".format(user_id))
 
 
+@app.route("/get-series-id.json", methods=["POST"])
+def get_series_id():
+    """ Returns series id based off series name """
+    series_name = request.form.get("series_name")
+    series = Series.query.filter_by(series_name=series_name)
+
+    if series:
+        return jsonify({"status": "ok", "id": series.series_id})
+    else:
+        return jsonify({"status": "Could not find series. Please try again."})
+
+
 @app.route("/update-fav-series.json", methods=["POST"])
 def update_fav_series():
+    """ Adds series to user's favorite series """
     user_id = session.get("user_id")
     series_id = request.form.get("series_id")
 
@@ -711,6 +759,7 @@ def show_author_info(author_id):
 
 @app.route("/goodreads-follow-author/<author_id>")
 def follow_goodreads_author(author_id):
+    """ Follows author on Goodreads linked to user's account """
     user = User.query.get(session.get("user_id"))
     author = Author.query.get(author_id)  # check to see if author exists as well
     if user:
@@ -754,8 +803,7 @@ def show_series_info(series_id):
             series_info["works"] = []
 
             for work in series_works:
-                valid_positions = [str(i) for i in range(1, int(series_info["length"]) + 1)]
-                # maybe make this a set?
+                valid_positions = set(str(i) for i in range(1, int(series_info["length"]) + 1))
 
                 if work.find("user_position").text in valid_positions:
                     work_info = get_info_for_work(work)
@@ -772,8 +820,6 @@ def show_series_info(series_id):
 
                     author = work_info["author"]
                     series_info["works"].append((title, author, pub_date, cover))
-                    # might consider adding some sort of sorting to make sure books show up in order
-                    # then again, they are in order on Goodreads so... idk
 
             if (len(series_info["works"]) != int(series_info["length"])):
                 series_info["length"] = str(len(series_info["works"]))

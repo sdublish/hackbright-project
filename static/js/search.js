@@ -93,6 +93,8 @@ $("#results-fav").on("click", function(){
                 $.post("/update-fav-author.json", formInputs2, function(result){
                     alert(result.result);
                 });
+            } else {
+                alert("Cannot add this author to favorites at this time. Sorry!");
             }
 
         });
@@ -119,30 +121,30 @@ $("#search").on("submit", function(evt){
         let td = $("input[name=timeframe]:checked").val();
         let formInputs = {"date": date, "author": author, "series": series, "timeframe" : td};
         $.post("/search.json", formInputs, function(result){
-            let mrPhrase = `Most recently released: ${result.most_recent[0]}, publication date: ${result.most_recent[1]}`;
-            let rPhrase;
-            if (result.results[0] === null) {
-            rPhrase = "No books found in timeframe.";
+            if (result["status"] === "error"){
+                alert("An error occured. Please try again.");
             } else {
-            rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
+                let rPhrase;
+                if (result.results[0] === null) {
+                rPhrase = "No books found in timeframe.";
+                } else {
+                rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
+                }
+
+                $("#act-results").html("<img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
+
+                $("#results-email").show();
+                let favButton;
+                if ($("#search-history").val() === 'author') {
+                    favButton = "Add " + $("#author").val() + " to Favorites";
+                } else if ($("#search-history").val() === 'series') {
+                    favButton = "Add " + $("#series option:selected").text() + " to Favorites";
+                }
+                $("#results-fav").text(favButton);
+                $("#results-fav").show();
+                $("#results").text("");
+                $("html, body").animate({ scrollTop: $(document).height() }, "slow");
             }
-
-            $("#most-recent").html("<h4>Most Recent</h4><img height='200' src='" + result.most_recent[2] + "'> <p>" + mrPhrase + "</p>" )
-            $("#act-results").html("<h4> Result in Timeframe </h4><img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
-
-            $("#results-email").show();
-            let favButton;
-            if ($("#search-history").val() === 'author') {
-                favButton = "Add " + $("#author").val() + " to Favorites";
-            } else if ($("#search-history").val() === 'series') {
-                favButton = "Add " + $("#series option:selected").text() + " to Favorites";
-            }
-            $("#results-fav").text(favButton);
-            $("#results-fav").show();
-            $("#results").text("");
-            $("html, body").animate({ scrollTop: $(document).height() }, "slow");
-
         });
     }
-
 });
