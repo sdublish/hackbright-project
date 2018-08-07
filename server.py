@@ -564,11 +564,12 @@ def update_authors():
             else:  # if author is NOT in database
                 gr_id, gr_name = get_author_goodreads_info(author_name)
 
-                if author_name != gr_name:  # name entered and name returned from goodreads do not match (indicates typo)
-                    flash("Could not find {}. Did you mean {}?".format(author_name, gr_name), "info")
+                if gr_id:
 
-                else:  # author is definitely NOT in database
-                    if gr_id:
+                    if author_name != gr_name:  # name entered and name returned from goodreads do not match (indicates typo)
+                        flash("Could not find {}. Did you mean {}?".format(author_name, gr_name), "info")
+
+                    else:  # author is definitely NOT in database
                         db.session.add(Author(author_name=gr_name, goodreads_id=gr_id))
                         db.session.commit()
 
@@ -576,7 +577,7 @@ def update_authors():
                         db.session.add(Fav_Author(author_id=author_id, user_id=user_id))
                         auth_add += " {},".format(author_name)
 
-                    else:
+                else:  # author is not in Goodreaeds
                         flash("{}} is not in Goodreads, so cannot add to favorites. Sorry!".format(author_name), "warning")
 
         if auth_fav:
@@ -628,7 +629,7 @@ def get_author_id():
             else:  # if author is not in database
                 db.session.add(Author(author_name=goodreads_name, goodreads_id=goodreads_id))
                 db.session.commit()
-                new_auth = Author.query.filter_by(goodreads_id=goodreads_id)
+                new_auth = Author.query.filter_by(goodreads_id=goodreads_id).first()
                 return jsonify({"auth_status": "ok", "id": new_auth.author_id})
 
         else:  # author is not in goodreads

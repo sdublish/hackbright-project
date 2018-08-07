@@ -1,13 +1,75 @@
+/* Overall styling */
 #banner {
-    background-image: url("../static/img/book-banner.png");
     height: 100px;
-    background-repeat: no-repeat;
-    background-size: 100%;
 }
 #banner-title{
-    padding:23px;
-    font-size: xx-large;
+    font-family:'Fredericka the Great', cursive;
+    padding:13px;
+    font-size: 50px;
 }
+
+.navbar{
+  background-color: rgba(216, 200, 166, 0.5);
+}
+
+h1, h2, h3 {
+    font-family:'Fredericka the Great', cursive;
+}
+
+body{
+  background-image: url("../static/img/old_map.png");
+  font-family: 'Itim', cursive;
+}
+
+/* Customization of bootstrap buttons */
+.btn {
+  color: #fff;
+  background-color: #ddc988;
+  border-color: #ddc988;
+}
+
+.btn:hover {
+  color: #fff;
+  background-color: #e9dbaf;
+  border-color: #e9dbaf;
+}
+
+.btn:focus, .btn.focus {
+  box-shadow: 0 0 0 3px rgba(221, 201, 316, 0.5);
+}
+
+.btn.disabled, .btn:disabled {
+  background-color: #ddc988;
+  border-color: #ddc988;
+}
+
+.btn:active, .btn.active,
+.show > .btn.dropdown-toggle {
+  background-color: #e9dbaf;
+  background-image: none;
+  border-color: #e9dbaf;
+}
+/* End bootstrap button customization */
+
+/* Bootstrap table customization */
+.table-bordered > thead > tr > th {
+    border-color: black;
+}
+
+table.table-bordered > tbody > tr > td{
+    border-color: black;
+}
+
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(189, 173, 117, 0.5);
+}
+/* End bootstrap table customization */
+
+.form-control:focus {
+    border-color: #e9dbaf;
+    box-shadow: 0 0 0 5px rgba(221, 201, 316, 0.5);
+}
+/* Specifically for book-results html page */
 
 label > input { 
   position: absolute; /* Remove input from document flow */
@@ -20,6 +82,8 @@ label > input + img { /* IMAGE STYLES */
 }
 
 label > input:checked + img { /* (RADIO CHECKED) IMAGE STYLES */
-  border: 7px solid green;
+  border: 7px solid #46351D;
   border-radius: 10px;
 }
+/* End book-results html-specific css */
+
