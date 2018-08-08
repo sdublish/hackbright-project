@@ -5,16 +5,17 @@
 {% if books %}
 <p class="text-center"> Click on the book you want to search! </p> <br>
 <div class="row justify-content-center">
-<form action="/book-series" method="POST">
+<form action="/book-series" method="POST" id="book-search-form">
 {% for n in range(5) %}
 <div class="row">
-{% for book in books[(n*4):(4+4*n)] %}
+{% for book in books[(n*4):(4*(n+1))] %}
 <div class="col-3 text-center">
 <div class="form-check">
 <label> 
     <input type="radio" class="form-check-input" name="book" value="{{ book[2] }} || {{ book [0] }}" id="{{ book[2] }}" style="display:none"> 
     <img src="{{book[3]}}">
-    <p>{{ book[0] }} by {{ book[1] }}</p>
+    <p>Title: <i>{{ book[0] }}</i> <br>
+    Author: {{ book[1] }}</p>
 </label>
 </div>
 </div>
@@ -23,7 +24,7 @@
 <br>
 {% endfor %}
 <div class="text-center">
-<button type="submit" class="btn"> Search by Title </button>
+<button type="submit" class="btn" id="book-search-btn"> Search by Title </button>
 </div>
 </form>
 </div>
@@ -36,4 +37,12 @@
 <p> No books were found. Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 </div>
 {% endif %}
+{% endblock %}
+{% block footer %}
+<div class="text-center">
+<p> Search powered by Goodreads</p>
+</div>
+{% endblock %}
+{% block script %}
+ <script src="/static/js/bookResults.js"> </script>
 {% endblock %}

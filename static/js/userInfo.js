@@ -1,6 +1,16 @@
 "use strict";
 // Code for user info page
 
+// on click on any link in favorite author list, shows spinner until page loads
+$("#user-fav-author").on("click", "a", function(){
+    $('#cover-spin').show(0);
+})
+
+// on click on any link in favorite series list, shows spinner until page loads
+$("#user-fav-series").on("click", "a", function(){
+    $('#cover-spin').show(0);
+})
+
 // on click, shows form to update profile
 $("#update-profile-btn").on("click", function(){
     $("#update-profile-form").show();

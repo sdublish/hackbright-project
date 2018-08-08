@@ -16,7 +16,6 @@
 
 
 {% if info %}
-<p> ~Info provided by Goodreads ~ </p>
 {% if info.description %}
 <p> Description: {{ info.description }} </p>
 {% else %}
@@ -33,7 +32,7 @@
 {% endif %}
 <br> <br> 
 
-<h3 class="text-center">Works in series</h3> <br>
+<h3 class="text-center">Works in Series</h3> <br>
 {% for n in range( (info.works|length //4) + 1) %}
 <div class="row">
     {% for work in info.works[(n*4):(4+4*n)] %}
@@ -49,7 +48,9 @@
 {% else %}
 <p> Could not get info from Goodreads. Please try again. </p>
 {% endif %}
-
+{% endblock %}
+{% block footer %}
+<p class="text-center"> Information provided by Goodreads and Google Books </p>
 {% endblock %}
 {% block script %}
 {% if "user_id" in session %}

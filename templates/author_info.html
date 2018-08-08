@@ -37,7 +37,6 @@
 <h3> Series by {{ author.author_name }} </h3>
 {% if author.goodreads_id %}
 {% if series %}
-<p> ~ Info by Goodreads ~ </p>
 <ul>
 {% for name in series.values() %}
 <li> {{ name }} </li>
@@ -48,7 +47,9 @@
 {% else %}
 <p> Author is not in Goodreads, and therefore we cannot display series info. Apologies. </p>
 {% endif %}
-
+{% endblock %}
+{% block footer %}
+<p class="text-center"> Information provided by Goodreads and Wikipedia </p>
 {% endblock %}
 {% block script %}
 {% if "user_id" in session %}

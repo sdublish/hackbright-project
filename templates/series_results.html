@@ -26,20 +26,19 @@
 </div>
 {% endif %}
 {% endfor %}
-<button type="submit" class="btn"> Look Up Series! </button>
+<button type="submit" class="btn" id="search-btn">Search</button>
 </form>
 </div>
 <br>
-<div class="row justify-content-center">
-<p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
-</div>
-
 <div class="row justify-content-center" id="results-headline" style="display:none">
     <h2 class="text-center"> Results </h2>
 </div>
 <div class="row justify-content-center">
     <div class="col-12 text-center" id="act-results">
     </div>
+</div>
+<div class="row justify-content-center">
+<p> None of these are right? Click <a href="/adv-search">here</a> to go back to the advanced search form. </p>
 </div>
 
 {% if "user_id" in session %}
@@ -59,6 +58,11 @@
 <p> No series were found. Please click <a href="/adv-search">here</a> to return back to advanced search </p>
 </div>
 {% endif %}
+{% endblock %}
+{% block footer %}
+<div class="text-center">
+<p> Search powered by Goodreads and Google Books </p>
+</div>
 {% endblock %}
 {% block script %}
  <script src="/static/js/seriesResults.js"> </script>

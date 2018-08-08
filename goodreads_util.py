@@ -119,9 +119,29 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
         if published == "error":
             return {"status": "error"}
 
-        result = (title, published, cover)
+        result = ("Title: <i>{}</i>".format(title), "Publication date: {}".format(published), cover)
 
         pdate = convert_string_to_datetime(published)
+
+        if (not timeframe) and not (pdate <= date):
+            while series_length >= "1":
+                work = by_user_position[series_length]
+                work = by_user_position[series_length]
+                work_info = get_info_for_work(work)
+                title2 = work_info["title"]
+                published2 = work_info["published"]
+                cover = work_info["cover"]
+
+                if published2 is None:
+                    published2 = get_pub_date_with_title(title)
+
+                pdate2 = convert_string_to_datetime(published2)
+
+                if pdate2 <= date:
+                    result = ("Title: <i>{}</i>".format(title2), "Publication date: {}".format(published2), cover)
+                    break
+
+                series_length = str(int(series_length) - 1)
 
         if timeframe and not (date <= pdate <= date + timeframe):
             if pdate < date:
@@ -145,7 +165,7 @@ def get_last_book_of_series(series_name, series_id, date, timeframe):
                         break
 
                     elif pdate <= pdate2 <= date + timeframe:
-                        result = (title2, pdate2, cover)
+                        result = ("Title: <i>{}</i>".format(title2), "Publication date: {}".format(published2), cover)
                         break
 
                     series_length = str(int(series_length) - 1)

@@ -65,7 +65,7 @@ Publishing Date Timeframe:
 {% endif %}
 {% endfor %}
 <br>
-    <button type="submit" class="btn">Search</button>
+    <button type="submit" class="btn" id="search-btn">Search</button>
     <p id="results"></p>
 </form>
 </div>
@@ -91,9 +91,11 @@ Publishing Date Timeframe:
 </div>
 </div>
 {% endif %}
-<br><br>
-{% endblock %}
 
+{% endblock %}
+{% block footer %}
+<p class="text-center"> Search powered by Goodreads and Google Books </p>
+{% endblock %}
 
 {% block script %}
 <script src="/static/js/search.js"></script>

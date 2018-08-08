@@ -108,14 +108,19 @@ $("#search").on("submit", function(evt){
     evt.preventDefault();
     let author = $("#author").val();
     let series = $("#series").val();
+    // four lines below empties out results if search has already happened
+    // and hides related items
+    $("#results-headline").hide();
+    $("#act-results").empty();
+    $("#results-fav").hide();
+    $("#results-email").hide();
 
     if (author && series) {
         $("#results").text("Please enter only an author or a series, not both.");
     } else if (!author && !series) {
         $("#results").text("Please enter a value to submit!");
     } else{
-        $("#results").text("Searching...")
-        $("#results-headline").show();
+        $("#search-btn").html("<i class='fas fa-spinner fa-spin'></i>");
         let date = new Date();
         date = date.toDateString();
         let td = $("input[name=timeframe]:checked").val();
@@ -123,15 +128,17 @@ $("#search").on("submit", function(evt){
         $.post("/search.json", formInputs, function(result){
             if (result["status"] === "error"){
                 alert("An error occured. Please try again.");
+                $("#search-btn").html("Search");
             } else {
+                $("#results-headline").show();
                 let rPhrase;
                 if (result.results[0] === null) {
                 rPhrase = "No books found in timeframe.";
                 } else {
-                rPhrase = `Results: ${result.results[0]}, publication date: ${result.results[1]}.`;
+                rPhrase = `${result.results[0]} <br> ${result.results[1]}.`;
                 }
 
-                $("#act-results").html("<img height='200' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
+                $("#act-results").html("<img height='150' src='" + result.results[2] + "'> <p>" + rPhrase + "</p>" )
 
                 $("#results-email").show();
                 let favButton;
@@ -142,7 +149,7 @@ $("#search").on("submit", function(evt){
                 }
                 $("#results-fav").text(favButton);
                 $("#results-fav").show();
-                $("#results").text("");
+                $("#search-btn").html("Search");
                 $("html, body").animate({ scrollTop: $(document).height() }, "slow");
             }
         });

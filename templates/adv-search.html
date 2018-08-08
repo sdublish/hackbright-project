@@ -13,7 +13,7 @@
 </div>
 <br> <br>
 <div class="row justify-content-center" id="author-search" style="display:none">
-<form action="/by-author" method="POST">
+<form action="/by-author" method="POST" id="author-search-frm">
     <div class="form-group">
     <label for="author"> Author Name </label>
     <input type="text" name="author" aria-describedby="author-rule" class="form-control" id="author" required>
@@ -21,20 +21,22 @@
     <small id="author-rule" class="form-text text-muted"> In order for this search to work properly, you must enter the full name of the author.</small>
     </div>
 
-    <button type="submit" class="btn">Search</button>
+    <button type="submit" class="btn" id="author-search-btn">Search</button>
 </form>
 </div>
 <div class="row justify-content-center" id="title-search" style="display:none">
-<form action="/by-book" method="POST">
+<form action="/by-book" method="POST" id="title-search-frm">
     <div class="form-group">
          <label for="title"> Book Title </label>
      <input type="text" name="title" class="form-control" id="title"required>
    
     </div>
-    <button type="submit" class="btn"> Search</button>
+    <button type="submit" class="btn" id="title-search-btn"> Search</button>
 </form>
 </div>
-
+{% endblock %}
+{% block footer %}
+<p class="text-center"> Search powered by Goodreads</p>
 {% endblock %}
 {% block script %}
 <script src="/static/js/advSearch.js"></script> 

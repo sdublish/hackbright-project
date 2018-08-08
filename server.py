@@ -50,8 +50,9 @@ request_token, request_token_secret = goodreads.get_request_token(header_auth=Tr
 authorizaton_url = goodreads.get_authorize_url(request_token)
 
 # dictionary in format of (days, what option is called)
-timeframes = {183: "Next Six Months", 365: "Next Year", 730: "In Two Years",
-              0: "First Book Found"}
+timeframes = {183: "First Book to be Published in Next Six Months", 365: "First Book to be Published in Next Year",
+              730: "First Book to be Published in In Two Years", 0: "Most Recently Published Book"}
+
 no_cover_img = "https://d298d76i4rjz9u.cloudfront.net/assets/no-cover-art-found-c49d11316f42a2f9ba45f46cfe0335bbbc75d97c797ac185cdb397a6a7aad78c.jpg"
 no_results_img = "http://sendmeglobal.net/images/404.png"
 
@@ -118,7 +119,20 @@ def search_json():
 
             pdate = convert_string_to_datetime(published_date)
 
-            result = (next_book["title"], published_date, next_book_cover)
+            result = ("Title: <i>{}</i>".format(next_book["title"]), "Publication date: {}".format(published_date), next_book_cover)
+
+            if (not td) and not (pdate <= py_date):
+                for work in results["items"][1:]:
+                    date2 = get_pub_date_with_book_id(work["id"])
+                    pdate2 = convert_string_to_datetime(date2)
+                    next_book_cover2 = no_cover_img
+
+                    if work["volumeInfo"].get("imageLinks"):
+                        next_book_cover2 = work["volumeInfo"]["imageLinks"]["thumbnail"]
+
+                    if (pdate2 <= py_date):
+                        result = ("Title: <i>{}</i>".format(work["volumeInfo"]["title"]), "Publication date: {}".format(date2), next_book_cover2)
+                        break
 
             if td and not (py_date <= pdate <= py_date + td):
                 if pdate < py_date:
@@ -135,8 +149,9 @@ def search_json():
                         if pdate2 < py_date:
                             result = (None, None, no_results_img)
                             break
+
                         elif py_date <= pdate2 <= py_date + td:
-                            result = (work["volumeInfo"]["title"], date2, next_book_cover2)
+                            result = ("Title: <i>{}</i>".format(work["volumeInfo"]["title"]), "Publication date: {}".format(date2), next_book_cover2)
                             break
 
             if "search_history" in session:

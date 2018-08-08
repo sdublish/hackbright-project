@@ -6,12 +6,14 @@ function showResults(result){
     // Displays results returned from AJAX call below
     if (result["status"] === "error"){
         alert("An error occurred. Please try again");
+        $("#search-btn").html("Search");
     } else {
+        $("#results-headline").show();
         let rPhrase;
         if (result["results"][0] === null) {
             rPhrase = "No books found in timeframe.";
         } else {
-            rPhrase = `Results: ${result["results"][0]}, publication date: ${result["results"][1]}.`;
+            rPhrase = `${result["results"][0]} <br> ${result["results"][1]}.`;
         }
 
         let seriesID = $('input[name=series]:checked').val();
@@ -22,23 +24,33 @@ function showResults(result){
         $("#results-fav").text(favButton);
         $("#results-fav").show();
 
-        $("#act-results").html("<img height='200' src='" + result["results"][2] + "'> <p>" + rPhrase + "</p>" );
-        $("#results-email").show();   
+        $("#act-results").html("<img height='150' src='" + result["results"][2] + "'> <p>" + rPhrase + "</p>" );
+        $("#results-email").show();
+        $("#search-btn").html("Search");
+        $("html, body").animate({ scrollTop: $(document).height() }, "slow"); 
     }
 }
 
 function searchSeries(evt){
-    // sends an AJAX request to determine what the last book in a series is
-    evt.preventDefault();
-    let date = new Date();
-    date = date.toDateString();
-    let td = $("input[name=timeframe]:checked").val();
+    // sends an AJAX request to determine what the last book in a series 
     let seriesID = $('input[name=series]:checked').val();
-    let IDAsString = `label[for=${seriesID}]`;
-    let seriesName = $(IDAsString).text();
-    let formInputs = {'id': seriesID, 'name': seriesName, 'date': date, 'timeframe': td};
-    $("#results-headline").show();
-    $.post("/series-result.json", formInputs, showResults);
+    evt.preventDefault();
+    if (seriesID === undefined){
+        alert("Please select a series to search!");
+    } else {
+        $("#search-btn").html("<i class='fas fa-spinner fa-spin'></i>");
+        $("#results-headline").hide();
+        $("#results-fav").hide();
+        $("#results-email").hide();
+        $("#act-results").empty();
+        let date = new Date();
+        date = date.toDateString();
+        let td = $("input[name=timeframe]:checked").val();
+        let IDAsString = `label[for=${seriesID}]`;
+        let seriesName = $(IDAsString).text();
+        let formInputs = {'id': seriesID, 'name': seriesName, 'date': date, 'timeframe': td};
+        $.post("/series-result.json", formInputs, showResults);
+    }
 }
 
 

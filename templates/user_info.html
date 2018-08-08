@@ -4,14 +4,14 @@
 <h1> {{ user.fname }} {{ user.lname }} </h1>
 
 <p> Favorite book: {{ user.fav_book }} </p>
-
+<div id="cover-spin"></div>
 {% if user.is_description_public or session.get("user_id") == user.user_id %}
 <p> Description: {{ user.description }} </p>
 {% endif %}
 
 {% if user.is_fav_author_public or session.get("user_id") == user.user_id %}
 {% if user.fav_authors|length > 0 %}
-<p> Favorite authors: <ul>{% for fav_author in user.fav_authors %} 
+<p> Favorite authors: <ul id="user-fav-author">{% for fav_author in user.fav_authors %} 
     <li> <a href="/author/{{fav_author.author.author_id}}">{{ fav_author.author.author_name }}</a> </li>
 {% endfor %}
 </ul></p>
@@ -22,7 +22,7 @@
 
 {% if user.is_fav_series_public or session.get("user_id") == user.user_id %}
 {% if user.fav_series|length > 0 %}
-<p> Favorite series: <ul>{% for fs in user.fav_series %} 
+<p> Favorite series: <ul id="user-fav-series">{% for fs in user.fav_series %} 
     <li><a href="/series/{{fs.series.series_id}}"> {{ fs.series.series_name }}</a> </li>
 {% endfor %}
 </ul></p>
@@ -33,7 +33,7 @@
 
 {% if session.get("user_id") == user.user_id %}
 {% if not user.is_goodreads_authorized %}
-<a href="/goodreads-oauth"><img src="/static/img/goodreads-login-button.png"></a>
+<a href="/goodreads-oauth"><button class="btn btn-sm">Link Your Goodreads Account</button></a>
 <br> <br>
 {% endif %}
 {% if session.get("search_history") %}
@@ -57,7 +57,7 @@
         <td> {{ item [1] }} </td>
         <td> {{ item[2] }} </td>
         {% if item[3][1]%}
-        <td> {{ item[3][0] }}, publication date: {{ item[3][1] }} </td>
+        <td> {{ item[3][0]|safe }} <br> {{ item[3][1] }} </td>
         {% else %}
          <td> No results found </td>
         {% endif %}
