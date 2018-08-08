@@ -15,11 +15,13 @@ from goodreads_util import (ET, goodreads_key, get_author_goodreads_info, get_se
                             sort_series, get_last_book_of_series, get_info_for_work)
 from model import connect_to_db, User, Author, Fav_Author, Series, Fav_Series, db
 
+# code for debugging purposes
 from flask_debugtoolbar import DebugToolbarExtension
 from jinja2 import StrictUndefined
 
 
 app = Flask(__name__)
+# below is for debugging purposes
 app.jinja_env.undefined = StrictUndefined
 
 mail_settings = {
@@ -852,8 +854,11 @@ def show_series_info(series_id):
             return redirect("/")
 
 if __name__ == "__main__":
-    app.debug = True
+    app.debug = False
+    # if debugging, uncomment line below
+    # app.debug = True
     app.jinja_env.auto_reload = app.debug
     connect_to_db(app)
-    DebugToolbarExtension(app)
+    # line below is for debugging purposes
+    # DebugToolbarExtension(app)
     app.run(host="0.0.0.0")
