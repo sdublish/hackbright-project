@@ -375,7 +375,6 @@ def show_series_results():
             db.session.add(Series(goodreads_id=series_id, series_name=series_name))
             db.session.commit()
 
-        print(results)
         return jsonify(results)
 
     else:

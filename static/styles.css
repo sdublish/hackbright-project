@@ -43,6 +43,7 @@ footer {
 #example{
   border: 3px solid #46351d;
   height: 300px;
+  border-radius: 20px;
 }
 
 /* Customization of bootstrap buttons */

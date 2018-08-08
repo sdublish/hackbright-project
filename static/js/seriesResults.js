@@ -63,8 +63,10 @@ $("#results-email").on("click", function(){
     let IDAsString = `label[for=${seriesID}]`;
     let seriesName = $(IDAsString).text();
     let title = "Bibliofind Search Results for " + seriesName;
+    $("#results-email").html("<i class='fas fa-spinner fa-spin'></i>");
     let formInputs = {"result": $("#act-results").html(), "title": title};
     $.post("/email-info.json", formInputs, function(results){
+        $("#results-email").html("Send Results to Email");
         alert(results["status"]);
     });
 

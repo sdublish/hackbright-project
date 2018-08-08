@@ -67,11 +67,13 @@ $("#results-email").on("click", function(){
     if ($("#search-history").val() === 'author') {
         title = $("#author").val(); 
     } else if ($("#search-history").val() === 'series') {
-        title = $("#series").val();
+        title = $("#series option:selected").text();
     }
     title = "Bibliofind Search Results for " + title;
+    $("#results-email").html("<i class='fas fa-spinner fa-spin'></i>");
     let formInputs = {"result": $("#act-results").html(), "title": title};
     $.post("/email-info.json", formInputs, function(results){
+        $("#results-email").html('Send Results to Email');
         alert(results["status"]);
     });
 

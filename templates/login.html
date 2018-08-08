@@ -4,6 +4,7 @@
 {% block content %}
 <!-- Possibly toss some of the cool visual validation stuff bootstrap has -->
 <h1 class='text-center'> Login </h1>
+<div class="row justify-content-center">
 <form action="/login" method="POST">
 <div class="form-group">
 <label for="email"> Email </label>
@@ -13,6 +14,7 @@
 <input class="form-control" type="password" name="password" id="password" required><br>
 <button type="submit" class="btn"> Log In! </button>
 </form>
+</div>
 <br>
-<p> Don't have an account yet? Then <a href="/sign-up">sign up!</a></p>
+<p class="text-center"> Don't have an account yet? Then <a href="/sign-up">sign up!</a></p>
 {% endblock %}

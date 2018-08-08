@@ -54,9 +54,11 @@ $("#search-history-display").on("click", function(){
 // sends an AJAX request so search history can be emailed to user
 $("#send-search-history").on("click", function(){
     let title = 'Your Search History';
-    let searchHistory = $("#search-history").html();
+    let searchHistory = $("#search-history-table").html();
+    $("#send-search-history").html("<i class='fas fa-spinner fa-spin'></i>");
     let formInputs = {"title": title, "result": searchHistory};
     $.post("/email-info.json", formInputs, function(results){
+        $("#send-search-history").html("Send Search History To Email");
         alert(results["status"]);
     })
 })
