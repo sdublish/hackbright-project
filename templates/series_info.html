@@ -37,7 +37,7 @@
 <div class="row">
     {% for work in info.works[(n*4):(4+4*n)] %}
     <div class="col-3 text-center">
-        <img src="{{work[3]}}">
+        <img src="{{work[3]}}" height="150">
         <p> {{ work[0] }} by {{ work[1] }}, published {{ work[2] }} </p>
     </div>
     {% endfor %}

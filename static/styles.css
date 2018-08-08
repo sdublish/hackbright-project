@@ -38,6 +38,12 @@ footer {
 .footer-icons a {
     color: #BA8F7E;
 }
+/* End overall styling */
+
+#example{
+  border: 3px solid #46351d;
+  height: 300px;
+}
 
 /* Customization of bootstrap buttons */
 .btn {

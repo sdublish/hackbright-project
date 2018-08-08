@@ -411,7 +411,7 @@ def logout():
     if "user_id" in session:
         del session["user_id"]
         del session["search_history"]
-        flash("Logged out!", "success")
+        flash("You are now logged out of Bibliofind!", "success")
 
     else:  # safety check just in case someome tries to access manually
         flash("You can't log out if you're not logged in!", "warning")
