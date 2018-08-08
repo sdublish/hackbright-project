@@ -5,29 +5,27 @@
 <br>
 <div class="row">
 <div class="col-sm-6 text-center">
-<button class="btn" id="author-btn"> Find Series by Author Name </button>
+<button class="btn" id="author-btn"> Find Series by Author</button>
 </div>
 <div class="col-sm-6 text-center">
-<button class="btn" id="title-btn"> Find Series by Book Title </button>
+<button class="btn" id="title-btn"> Find Series by Title </button>
 </div>
 </div>
 <br> <br>
 <div class="row justify-content-center" id="author-search" style="display:none">
 <form action="/by-author" method="POST" id="author-search-frm">
     <div class="form-group">
-    <label for="author"> Author Name </label>
+    <label for="author"> Author's Full Name </label>
     <input type="text" name="author" aria-describedby="author-rule" class="form-control" id="author" required>
     <!-- Might add regex here to validate submision -->
-    <small id="author-rule" class="form-text text-muted"> In order for this search to work properly, you must enter the full name of the author.</small>
     </div>
-
     <button type="submit" class="btn" id="author-search-btn">Search</button>
 </form>
 </div>
 <div class="row justify-content-center" id="title-search" style="display:none">
 <form action="/by-book" method="POST" id="title-search-frm">
     <div class="form-group">
-         <label for="title"> Book Title </label>
+         <label for="title">Title </label>
      <input type="text" name="title" class="form-control" id="title"required>
    
     </div>

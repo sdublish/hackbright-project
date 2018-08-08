@@ -2,13 +2,11 @@
 {% block title %} {{ user.fname }}'s Info {% endblock %}
 {% block content %}
 <h1> {{ user.fname }} {{ user.lname }} </h1>
-
 <p> Favorite book: {{ user.fav_book }} </p>
 <div id="cover-spin"></div>
 {% if user.is_description_public or session.get("user_id") == user.user_id %}
 <p> Description: {{ user.description }} </p>
 {% endif %}
-
 {% if user.is_fav_author_public or session.get("user_id") == user.user_id %}
 {% if user.fav_authors|length > 0 %}
 <p> Favorite authors: <ul id="user-fav-author">{% for fav_author in user.fav_authors %} 
@@ -66,6 +64,7 @@
 </tbody>
     </table>
 </div>
+
 <div class="text-center">
 <button class="btn" id="send-search-history"> Send Search History To Email </button>
 </div>
