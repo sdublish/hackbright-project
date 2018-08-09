@@ -30,10 +30,8 @@
 {% endif %}
 
 {% if session.get("user_id") == user.user_id %}
-{% if not user.is_goodreads_authorized %}
 <a href="/goodreads-oauth"><button class="btn btn-sm">Link Your Goodreads Account</button></a>
 <br> <br>
-{% endif %}
 {% if session.get("search_history") %}
 <div id="search-history">
 <h3 class="text-center"> Search History </h3>
