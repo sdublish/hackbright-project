@@ -53,7 +53,7 @@ authorizaton_url = goodreads.get_authorize_url(request_token)
 
 # dictionary in format of (days, what option is called)
 timeframes = {183: "First Book to be Published in Next Six Months", 365: "First Book to be Published in Next Year",
-              730: "First Book to be Published in In Two Years", 0: "Most Recently Published Book"}
+              730: "First Book to be Published in Next Two Years", 0: "Most Recently Published Book"}
 
 no_cover_img = "https://d298d76i4rjz9u.cloudfront.net/assets/no-cover-art-found-c49d11316f42a2f9ba45f46cfe0335bbbc75d97c797ac185cdb397a6a7aad78c.jpg"
 no_results_img = "http://sendmeglobal.net/images/404.png"
@@ -698,7 +698,7 @@ def update_series():
 def get_series_id():
     """ Returns series id based off series name """
     series_name = request.form.get("series_name")
-    series = Series.query.filter_by(series_name=series_name)
+    series = Series.query.filter_by(series_name=series_name).first()
 
     if series:
         return jsonify({"status": "ok", "id": series.series_id})

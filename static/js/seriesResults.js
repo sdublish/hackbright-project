@@ -84,7 +84,7 @@ $("#results-fav").on("click", function(){
         } else {
             let formInput2 = {"series_id": result1["id"]};
             $.post("/update-fav-series.json", formInput2, function(result2){
-                alert(result2["status"]);
+                alert(result2["result"]);
             });
         }
     });
