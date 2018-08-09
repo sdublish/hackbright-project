@@ -48,8 +48,8 @@ goodreads = OAuth1Service(
     base_url='https://www.goodreads.com/'
     )
 
-request_token, request_token_secret = goodreads.get_request_token(header_auth=True)
-authorizaton_url = goodreads.get_authorize_url(request_token)
+request_token = None
+request_token_secret = None
 
 # dictionary in format of (days, what option is called)
 timeframes = {183: "First Book to be Published in Next Six Months", 365: "First Book to be Published in Next Year",
@@ -482,6 +482,8 @@ def show_profile(user_id):
 @app.route("/goodreads-oauth")
 def goodreads_oauth():
     """ Provides url needed for Goodreads OAuth """
+    request_token, request_token_secret = goodreads.get_request_token(header_auth=True)
+    authorizaton_url = goodreads.get_authorize_url(request_token)
     return redirect(authorizaton_url)
 
 
@@ -793,7 +795,7 @@ def follow_goodreads_author(author_id):
 
         else:  # could redirect a person to allow them... modify the oauth-authorized route?
             flash("Not authorized to do this function.", "danger")
-            return redirect("/")
+            return redirect("/user/{}".format(session.get("user_id")))
 
     else:
         flash("Must be logged in to access this function.", "danger")

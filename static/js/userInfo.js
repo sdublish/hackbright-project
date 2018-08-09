@@ -11,6 +11,11 @@ $("#user-fav-series").on("click", "a", function(){
     $('#cover-spin').show(0);
 })
 
+// on click, changes button to loading symbol
+$("#gr-auth-lnk").on("click", function(){
+    $("#gr-auth-btn").html("<i class='fas fa-spinner fa-spin'></i>");
+})
+
 // on click, shows form to update profile
 $("#update-profile-btn").on("click", function(){
     $("#update-profile-form").show();
