@@ -3,9 +3,9 @@
 Bibliofind helps users find out when the next book  from their favorite author or series will be published.  After inputting a series or author name, the application gathers the necessary information from the Goodreads or Google Books API, and displays the information for the user.   If a series is not in the application database, users can use the advanced search option to get to a series name by searching by author or book title. Users who have made an account can email these results, and their search history, directly to their email. In addition, registered users can link their Goodreads account to their Bibliofind account, and directly favorite authors for their Goodreads account via Bibliofind.
 
 ## Tech Stack
-**Frontend**: HTML5, CSS, Javascript, jQuery, Bootstrap, Bootstrap-Select
-**Backend**: Python, Flask, PostgreSQL, SQLAlchemy, Flask-Mail, Jinja, rauth
-**APIs**: Goodreads, Google Books, Wikipedia
+- **Frontend**: HTML5, CSS, Javascript, jQuery, Bootstrap, Bootstrap-Select
+- **Backend**: Python, Flask, PostgreSQL, SQLAlchemy, Flask-Mail, Jinja, rauth
+- **APIs**: Goodreads, Google Books, Wikipedia
 
 ## Features
 Visitors can use the site with or without an account. Without an account, visitors can search for when the next book is coming out by series name or author. 
